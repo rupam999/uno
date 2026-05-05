@@ -1,36 +1,49 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# UNO No Mercy - Multiplayer Web Game
+
+A real-time multiplayer UNO No Mercy game built with Next.js, Socket.IO, and TypeScript.
+
+## Features
+
+- ✅ Full UNO No Mercy rules (168 cards)
+- ✅ Real-time multiplayer (2-10 players)
+- ✅ Cumulative draw card stacking (+2, +4, +6, +10)
+- ✅ Mercy rule (25 cards = elimination)
+- ✅ Special cards (7 swap, 0 pass, Color Roulette)
+- ✅ Mobile-friendly responsive design
+- ✅ Dark mode UI
+- ✅ Room code system for easy joining
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
 
 ```bash
+# Install dependencies
+npm install
+
+# Run development server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to play!
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Deployment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+⚠️ **Important**: This app requires WebSocket support. See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions.
 
-## Learn More
+### Quick Options:
+1. **Vercel + Railway** (Recommended) - Split frontend/backend
+2. **Railway** (Easiest) - All-in-one deployment
+3. **Render** (Free tier) - All-in-one deployment
 
-To learn more about Next.js, take a look at the following resources:
+## How It Works
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Frontend**: Next.js 16.2.4 with React 19.2.4
+- **Backend**: Custom Socket.IO server for real-time gameplay
+- **Real-time**: WebSocket connections sync game state across all players
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for deployment details.

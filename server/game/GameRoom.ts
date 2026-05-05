@@ -305,9 +305,9 @@ export class GameRoom {
   private applyCardEffects(card: Card, player: Player, chosenColor?: Color): string[] {
     const eliminatedPlayers: string[] = [];
 
-    // Handle draw cards
+    // Handle draw cards - ADD to pending penalty for stacking
     if (isDrawCard(card.type)) {
-      this.pendingPenalty = getDrawPenalty(card.type);
+      this.pendingPenalty += getDrawPenalty(card.type); // Changed from = to +=
       this.pendingPenaltyType = card.type;
     }
 

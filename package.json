@@ -2,10 +2,19 @@
   "name": "uno-game",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.x",
+    "npm": "10.x"
+  },
   "scripts": {
     "dev": "tsx watch server/index.ts",
+    "dev:frontend": "next dev",
+    "dev:server": "tsx watch server/index.ts",
     "build": "next build",
+    "build:server": "tsc --project tsconfig.server.json",
     "start": "NODE_ENV=production tsx server/index.ts",
+    "start:frontend": "next start",
+    "start:server": "NODE_ENV=production node dist/server/index.js",
     "lint": "eslint"
   },
   "dependencies": {
