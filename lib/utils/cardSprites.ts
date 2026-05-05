@@ -1,110 +1,49 @@
 import { Card, Color, CardType } from '@/lib/game/types';
 
-// Sprite sheet configuration
-// These values may need adjustment based on your actual sprite sheets
-const CARD_WIDTH = 240;
-const CARD_HEIGHT = 360;
-
-// Layout assumes cards are arranged in a grid
-// You may need to adjust these based on your sprite sheet layout
-interface SpritePosition {
-  spriteSheet: 'basic_cards.png' | 'special_cards.png';
-  row: number;
-  col: number;
-}
-
 /**
- * Get sprite position for a card
- * This is a simplified version - you'll need to adjust based on your actual sprite layout
+ * Get the image path for a card based on its properties
  */
-export function getCardSpritePosition(card: Card): SpritePosition {
-  // Wild cards use special_cards.png
+export function getCardImagePath(card: Card): string {
+  // Handle wild cards
   if (card.color === null) {
-    return getWildCardPosition(card.type);
+    switch (card.type) {
+      case 'wild_color_roulette':
+        return '/cards/color_roulette_wild_1.png';
+      case 'wild_draw_6':
+        return '/cards/wild_draw6_blue.png';
+      case 'wild_draw_10':
+        return '/cards/wild_draw10_yellow.png';
+      case 'wild_reverse_draw_4':
+        return '/cards/wild_stackable_draw4_1.png';
+      default:
+        return '/cards/logo.png';
+    }
   }
 
-  // Regular colored cards use basic_cards.png
-  return getColoredCardPosition(card);
-}
+  const color = card.color;
 
-/**
- * Get position for wild cards in special_cards.png
- */
-function getWildCardPosition(cardType: CardType): SpritePosition {
-  const positions: Record<string, { row: number; col: number }> = {
-    wild: { row: 0, col: 0 },
-    wild_draw_6: { row: 0, col: 1 },
-    wild_draw_10: { row: 0, col: 2 },
-    wild_reverse_draw_4: { row: 0, col: 3 },
-    wild_color_roulette: { row: 0, col: 4 },
-  };
-
-  const pos = positions[cardType] || { row: 0, col: 0 };
-  return {
-    spriteSheet: 'special_cards.png',
-    row: pos.row,
-    col: pos.col,
-  };
-}
-
-/**
- * Get position for colored cards in basic_cards.png
- * Assumes layout: Red (row 0), Blue (row 1), Green (row 2), Yellow (row 3)
- * Columns: 0-9 for numbers, then action cards
- */
-function getColoredCardPosition(card: Card): SpritePosition {
-  const colorRows: Record<Color, number> = {
-    red: 0,
-    blue: 1,
-    green: 2,
-    yellow: 3,
-  };
-
-  const row = colorRows[card.color as Color] || 0;
-  let col = 0;
-
-  if (card.type === 'number' && card.value !== null) {
-    col = card.value; // 0-9
-  } else {
-    // Action cards after numbers
-    const actionCols: Record<string, number> = {
-      skip: 10,
-      skip_all: 11,
-      reverse: 12,
-      draw_2: 13,
-      draw_4: 14,
-      discard_all: 15,
-    };
-    col = actionCols[card.type] || 0;
+  // Handle number cards
+  if (card.type === 'number') {
+    return `/cards/${color}-${card.value}.png`;
   }
 
-  return {
-    spriteSheet: 'basic_cards.png',
-    row,
-    col,
-  };
-}
-
-/**
- * Generate CSS styles for displaying a card sprite
- */
-export function getCardStyles(
-  card: Card,
-  width: number = 120,
-  height: number = 180
-): React.CSSProperties {
-  const position = getCardSpritePosition(card);
-  const scale = width / CARD_WIDTH;
-
-  return {
-    width: `${width}px`,
-    height: `${height}px`,
-    backgroundImage: `url(/${position.spriteSheet})`,
-    backgroundPosition: `-${position.col * CARD_WIDTH}px -${position.row * CARD_HEIGHT}px`,
-    backgroundSize: `${CARD_WIDTH * 16 * scale}px ${CARD_HEIGHT * 4 * scale}px`, // Assuming 16 columns, 4 rows
-    backgroundRepeat: 'no-repeat',
-    imageRendering: 'crisp-edges',
-  };
+  // Handle action cards
+  switch (card.type) {
+    case 'skip':
+      return `/cards/${color}-skip.png`;
+    case 'skip_all':
+      return `/cards/${color}-skip.png`; // Using regular skip for skip_all
+    case 'reverse':
+      return `/cards/${color}-reverse.png`;
+    case 'draw_2':
+      return `/cards/${color}-draw2.png`;
+    case 'draw_4':
+      return `/cards/draw4_${color}.png`;
+    case 'discard_all':
+      return `/cards/discard_all_${color}.png`;
+    default:
+      return '/cards/logo.png';
+  }
 }
 
 /**
