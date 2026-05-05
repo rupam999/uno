@@ -1,0 +1,45 @@
+{
+  "game_meta": {
+    "name": "UNO Show 'Em No Mercy",
+    "total_cards": 168,
+    "starting_hand_size": 7,
+    "max_hand_size_limit": 25,
+    "elimination_points": 250,
+    "target_score": 1000
+  },
+  "rules": {
+    "stacking": "You can stack Draw cards (+2, +4, +6, +10) if your card is equal or higher than the current penalty. If you can't play, you take the full accumulated draw.",
+    "draw_until_play": "If you don't have a match, draw from the pile until you find a playable card.",
+    "mercy_rule": "If a player's hand reaches 25 cards, they are immediately eliminated.",
+    "seven_zero_rule": "7's force a hand swap with a player of choice. 0's force everyone to pass their hand in the current direction.",
+    "no_mercy_points": "Numbers = Face Value; Action Cards = 20; Wild Cards = 50; Knocking out a player = 250."
+  },
+  "deck_breakdown": {
+    "colored_cards": {
+      "colors": ["Red", "Blue", "Green", "Yellow"],
+      "composition_per_color": {
+        "numbers": "2 sets of 0-9 (Special: 0=Pass, 7=Swap)",
+        "skips": 3,
+        "skip_all": 2,
+        "reverses": 3,
+        "draw_2": 2,
+        "draw_4": 2,
+        "discard_all": 3
+      }
+    },
+    "wild_cards": {
+      "wild_reverse_draw_4": 8,
+      "wild_draw_6": 4,
+      "wild_draw_10": 4,
+      "wild_color_roulette": 8
+    }
+  },
+  "card_definitions": [
+    { "type": "Number", "value": "0", "action": "Zero Pass (All players pass hands)" },
+    { "type": "Number", "value": "7", "action": "Seven Swap (Swap hand with one player)" },
+    { "type": "Action", "value": "Skip Everyone", "action": "Skips all other players; play again" },
+    { "type": "Action", "value": "Discard All", "action": "Discard all cards of this color in hand" },
+    { "type": "Wild", "value": "Color Roulette", "action": "Next player picks color, draws until found" },
+    { "type": "Wild", "value": "Reverse Draw 4", "action": "Reverse direction, next player draws 4" }
+  ]
+}
