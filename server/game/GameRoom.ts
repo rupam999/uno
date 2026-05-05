@@ -217,6 +217,7 @@ export class GameRoom {
     error?: string;
     cards?: Card[];
     autoPlay?: boolean;
+    canPlay?: boolean;
     eliminatedPlayer?: boolean;
   } {
     const player = this.players.get(playerId);
@@ -256,47 +257,39 @@ export class GameRoom {
       return { success: true, cards: drawnCards };
     }
 
-    // Draw until playable rule
-    let drawnPlayable = false;
-    let maxDraws = 20; // Safety limit
-    let drawCount = 0;
+    // Normal draw: Draw ONE card only
+    const card = this.deck.draw();
+    if (!card) {
+      // No more cards in deck
+      this.nextTurn();
+      this.updateActivity();
+      return { success: true, cards: [] };
+    }
 
-    while (!drawnPlayable && drawCount < maxDraws) {
-      const card = this.deck.draw();
-      if (!card) {
-        break; // No more cards
-      }
+    drawnCards.push(card);
+    player.addCard(card);
 
-      drawnCards.push(card);
-      drawCount++;
+    // Check if drawn card is playable
+    const isPlayable = this.topCard && canPlayCard(card, this.topCard, this.currentColor, 0);
 
-      // Check if drawn card is playable
-      if (this.topCard && canPlayCard(card, this.topCard, this.currentColor, 0)) {
-        drawnPlayable = true;
-        player.addCard(card);
-        break;
-      }
-
-      player.addCard(card);
-
-      // Check mercy rule after each draw
-      if (player.getHandSize() >= CONFIG.MAX_HAND_SIZE_LIMIT) {
-        player.eliminate();
-        this.nextTurn();
-        this.checkGameEnd();
-        this.updateActivity();
-        return { success: true, cards: drawnCards, eliminatedPlayer: true };
-      }
+    // Check mercy rule
+    if (player.getHandSize() >= CONFIG.MAX_HAND_SIZE_LIMIT) {
+      player.eliminate();
+      this.nextTurn();
+      this.checkGameEnd();
+      this.updateActivity();
+      return { success: true, cards: drawnCards, eliminatedPlayer: true };
     }
 
     this.updateActivity();
 
-    // Don't auto-advance turn if player drew a playable card
-    if (!drawnPlayable) {
+    // Player can choose to play the drawn card if it's playable
+    // Otherwise turn passes automatically
+    if (!isPlayable) {
       this.nextTurn();
     }
 
-    return { success: true, cards: drawnCards, autoPlay: drawnPlayable };
+    return { success: true, cards: drawnCards, autoPlay: false, canPlay: isPlayable };
   }
 
   /**

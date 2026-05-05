@@ -80,23 +80,22 @@ export function PlayerHand({
   return (
     <div className="w-full">
       {/* Cards Display */}
-      <div className="bg-gray-800/50 rounded-xl p-4 border border-gray-700">
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-white font-bold">Your Hand</h3>
-            <span className="text-gray-400 text-sm">({cards.length} cards)</span>
-          </div>
+      <div className="bg-gradient-to-t from-black/80 to-black/40 rounded-xl md:rounded-2xl p-1.5 md:p-3 border border-purple-500/30 shadow-xl backdrop-blur-sm">
+        <div className="flex items-center justify-between mb-1 md:mb-2">
+          <h3 className="text-white font-black text-[11px] md:text-sm tracking-wide">
+            HAND <span className="text-purple-300">({cards.length})</span>
+          </h3>
 
           {isMyTurn && (
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm font-medium">Your Turn</span>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-500/20 border border-green-400/40">
+              <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
+              <span className="text-green-400 text-[10px] md:text-xs font-bold tracking-wide">YOUR TURN</span>
             </div>
           )}
         </div>
 
-        {/* Cards Grid */}
-        <div className="flex flex-wrap gap-2 justify-center md:justify-start mb-4 overflow-x-auto pb-2">
+        {/* Cards Grid - Horizontal scroll on mobile */}
+        <div className="flex gap-1.5 md:gap-2 mb-1.5 md:mb-3 overflow-x-auto pb-1 md:pb-2 scrollbar-hide">
           {sortedCards.map((card) => {
             const isPlayable =
               isMyTurn &&
@@ -104,58 +103,59 @@ export function PlayerHand({
               canPlayCard(card, topCard, currentColor as any, pendingPenalty);
 
             return (
-              <Card
-                key={card.id}
-                card={card}
-                size="medium"
-                selected={selectedCardId === card.id}
-                playable={isPlayable}
-                onClick={() => handleCardClick(card)}
-              />
+              <div key={card.id} className="flex-shrink-0 transform transition-transform hover:scale-105">
+                <Card
+                  card={card}
+                  size="small"
+                  selected={selectedCardId === card.id}
+                  playable={isPlayable}
+                  onClick={() => handleCardClick(card)}
+                />
+              </div>
             );
           })}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-1.5 md:gap-2">
           {selectedCardId && (
             <button
               onClick={handlePlaySelected}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
+              className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black py-1.5 md:py-2.5 px-3 md:px-5 rounded-lg shadow-lg hover:shadow-green-500/50 transition-all duration-200 text-[11px] md:text-sm tracking-wider"
             >
-              Play Selected Card
+              ▶ PLAY
             </button>
           )}
 
           {isMyTurn && !hasPlayableCard && !selectedCardId && (
             <button
               onClick={onDrawCard}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition hover:scale-105"
+              className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black py-1.5 md:py-2.5 px-3 md:px-5 rounded-lg shadow-lg hover:shadow-blue-500/50 transition-all duration-200 text-[11px] md:text-sm tracking-wider"
             >
-              {pendingPenalty > 0 ? `Draw ${pendingPenalty} Cards` : 'Draw Card'}
+              {pendingPenalty > 0 ? `↓ +${pendingPenalty}` : '↓ DRAW'}
             </button>
           )}
 
           {shouldCallUno && (
             <button
               onClick={onCallUno}
-              className="bg-gradient-to-r from-red-600 to-pink-700 hover:from-red-700 hover:to-pink-800 text-white font-bold py-3 px-6 rounded-lg shadow-lg transform transition hover:scale-105 animate-pulse"
+              className="bg-gradient-to-r from-red-500 via-pink-500 to-red-600 text-white font-black py-1.5 md:py-2.5 px-3 md:px-5 rounded-lg shadow-lg shadow-red-500/50 animate-pulse transition-all duration-200 text-[11px] md:text-sm tracking-widest"
             >
-              UNO! 🎉
+              🎯 UNO!
             </button>
           )}
 
           {!isMyTurn && (
-            <div className="flex-1 bg-gray-700/50 text-gray-400 font-medium py-3 px-6 rounded-lg text-center border border-gray-600">
-              Waiting for other player...
+            <div className="flex-1 bg-gray-800/50 text-gray-400 font-bold py-1.5 md:py-2.5 px-3 md:px-5 rounded-lg text-center border border-gray-700/50 text-[10px] md:text-sm tracking-wide">
+              ⏳ Waiting...
             </div>
           )}
         </div>
 
         {/* Hint Text */}
         {isMyTurn && hasPlayableCard && (
-          <p className="text-gray-400 text-xs text-center mt-2">
-            Click a highlighted card to select it, click again to play
+          <p className="text-purple-300/60 text-xs text-center mt-1 md:mt-2 hidden md:block font-medium">
+            Tap card twice to play
           </p>
         )}
       </div>

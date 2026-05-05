@@ -9,7 +9,7 @@
   },
   "rules": {
     "stacking": "You can stack Draw cards (+2, +4, +6, +10) if your card is equal or higher than the current penalty. If you can't play, you take the full accumulated draw.",
-    "draw_until_play": "If you don't have a match, draw from the pile until you find a playable card.",
+    "draw_rule": "If you don't have a playable card, draw ONE card from the deck. If it's playable, you may play it or pass your turn. If it's not playable, your turn automatically passes.",
     "mercy_rule": "If a player's hand reaches 25 cards, they are immediately eliminated.",
     "seven_zero_rule": "7's force a hand swap with a player of choice. 0's force everyone to pass their hand in the current direction.",
     "no_mercy_points": "Numbers = Face Value; Action Cards = 20; Wild Cards = 50; Knocking out a player = 250."

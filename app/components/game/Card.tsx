@@ -14,9 +14,9 @@ interface CardProps {
 }
 
 const SIZE_CONFIG = {
-  small: { width: 80, height: 120 },
-  medium: { width: 120, height: 180 },
-  large: { width: 160, height: 240 },
+  small: { width: 60, height: 90 },
+  medium: { width: 100, height: 150 },
+  large: { width: 140, height: 210 },
 };
 
 export function Card({
@@ -33,9 +33,9 @@ export function Card({
   return (
     <div
       className={`
-        relative rounded-xl overflow-hidden transition-all
-        ${selected ? 'ring-4 ring-blue-400 -translate-y-4 shadow-2xl' : 'shadow-lg'}
-        ${playable ? 'hover:scale-105 hover:-translate-y-2 cursor-pointer' : 'opacity-60'}
+        relative rounded-xl overflow-hidden transition-all duration-300
+        ${selected ? 'ring-4 ring-blue-400 -translate-y-4 shadow-2xl shadow-blue-500/50 scale-105' : 'shadow-xl'}
+        ${playable ? 'hover:scale-110 hover:-translate-y-3 cursor-pointer ring-2 ring-green-400/50' : 'opacity-70'}
         ${!playable && !onClick ? 'cursor-default' : ''}
         ${className}
       `}
@@ -57,15 +57,15 @@ export function Card({
         />
       </div>
 
-      {/* Playable indicator */}
+      {/* Playable glow effect */}
       {playable && !selected && (
-        <div className="absolute inset-0 bg-green-400/30 rounded-xl ring-2 ring-green-400 animate-pulse" />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-400/40 via-emerald-400/30 to-green-500/40 rounded-xl ring-2 ring-green-400 animate-pulse" />
       )}
 
       {/* Selected indicator */}
       {selected && (
-        <div className="absolute -top-2 -right-2 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center shadow-lg ring-2 ring-white z-10">
-          <span className="text-white text-sm font-bold">✓</span>
+        <div className="absolute -top-2 -right-2 w-8 h-8 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center shadow-xl ring-2 ring-white z-10 animate-bounce">
+          <span className="text-white text-sm font-black">✓</span>
         </div>
       )}
     </div>

@@ -309,7 +309,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           return;
         }
 
-        callback?.({ success: true, cards: result.cards });
+        callback?.({ success: true, cards: result.cards, canPlay: result.canPlay });
 
         // Notify all players (but only show card count to others)
         room.players.forEach((_, pid) => {
@@ -319,6 +319,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
               playerId,
               cardCount: result.cards?.length || 0,
               drawnCard: result.cards,
+              canPlay: result.canPlay,
             });
           } else {
             // Only send count to others

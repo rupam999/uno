@@ -4,7 +4,7 @@ import { Card, Color, CardType } from '@/lib/game/types';
  * Get the image path for a card based on its properties
  */
 export function getCardImagePath(card: Card): string {
-  // Handle wild cards
+  // Handle wild cards (no color)
   if (card.color === null) {
     switch (card.type) {
       case 'wild_color_roulette':
@@ -16,7 +16,7 @@ export function getCardImagePath(card: Card): string {
       case 'wild_reverse_draw_4':
         return '/cards/wild_stackable_draw4_1.png';
       default:
-        return '/cards/logo.png';
+        return '/cards/color_roulette_wild_1.png'; // Fallback to a wild card
     }
   }
 
@@ -24,25 +24,26 @@ export function getCardImagePath(card: Card): string {
 
   // Handle number cards
   if (card.type === 'number') {
-    return `/cards/${color}-${card.value}.png`;
+    return `/cards/${color}_${card.value}.png`;
   }
 
   // Handle action cards
   switch (card.type) {
     case 'skip':
-      return `/cards/${color}-skip.png`;
+      return `/cards/${color}_skip.png`;
     case 'skip_all':
-      return `/cards/${color}-skip.png`; // Using regular skip for skip_all
+      // No separate skip_all images, using swap as it's the closest match
+      return `/cards/${color}_swap.png`;
     case 'reverse':
-      return `/cards/${color}-reverse.png`;
+      return `/cards/reverse_${color}.png`;
     case 'draw_2':
-      return `/cards/${color}-draw2.png`;
+      return `/cards/${color}_draw2.png`;
     case 'draw_4':
       return `/cards/draw4_${color}.png`;
     case 'discard_all':
       return `/cards/discard_all_${color}.png`;
     default:
-      return '/cards/logo.png';
+      return '/cards/color_roulette_wild_1.png';
   }
 }
 
