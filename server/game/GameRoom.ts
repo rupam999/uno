@@ -1,0 +1,622 @@
+import { Card, Color, Direction, GameState, RoomState, ClientGameState } from '@/lib/game/types';
+import { Player } from './Player';
+import { Deck } from './Deck';
+import {
+  GAME_CONFIG,
+  isDrawCard,
+  getDrawPenalty,
+  GAME_CONFIG as CONFIG,
+} from '@/lib/game/constants';
+import {
+  canPlayCard,
+  hasPlayableCard,
+  triggersHandSwap,
+  triggersHandPass,
+  triggersReverse,
+  skipsNextPlayer,
+  skipsAllPlayers,
+  triggersDiscardAll,
+  isColorRoulette,
+  requiresColorSelection,
+} from './validators';
+
+export class GameRoom {
+  id: string;
+  state: RoomState = 'waiting';
+  players: Map<string, Player> = new Map();
+  deck: Deck;
+  currentPlayerIndex: number = 0;
+  direction: Direction = 1;
+  currentColor: Color | null = null;
+  topCard: Card | null = null;
+  pendingPenalty: number = 0;
+  pendingPenaltyType: Card['type'] | null = null;
+  waitingForPlayerChoice: boolean = false;
+  roundNumber: number = 1;
+  createdAt: number = Date.now();
+  startedAt: number | null = null;
+  lastActivity: number = Date.now();
+
+  constructor(roomId: string) {
+    this.id = roomId;
+    this.deck = new Deck();
+  }
+
+  /**
+   * Add a player to the room
+   */
+  addPlayer(playerId: string, playerName: string): boolean {
+    if (this.players.size >= CONFIG.MAX_PLAYERS) {
+      return false;
+    }
+
+    if (this.state !== 'waiting') {
+      return false;
+    }
+
+    const isHost = this.players.size === 0;
+    const player = new Player(playerId, playerName, isHost);
+    this.players.set(playerId, player);
+    this.updateActivity();
+    return true;
+  }
+
+  /**
+   * Remove a player from the room
+   */
+  removePlayer(playerId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return false;
+    }
+
+    // If host leaves, transfer to next player
+    if (player.isHost && this.players.size > 1) {
+      this.transferHost();
+    }
+
+    this.players.delete(playerId);
+    this.updateActivity();
+
+    // If player was eliminated and only one remains, that player wins
+    if (this.state === 'playing') {
+      this.checkGameEnd();
+    }
+
+    return true;
+  }
+
+  /**
+   * Transfer host to another player
+   */
+  private transferHost(): void {
+    const currentHost = Array.from(this.players.values()).find((p) => p.isHost);
+    if (currentHost) {
+      currentHost.isHost = false;
+    }
+
+    // Give host to next connected, non-eliminated player
+    const newHost = Array.from(this.players.values()).find(
+      (p) => !p.isEliminated && p.isConnected
+    );
+    if (newHost) {
+      newHost.isHost = true;
+    }
+  }
+
+  /**
+   * Start the game
+   */
+  startGame(): boolean {
+    if (this.state !== 'waiting') {
+      return false;
+    }
+
+    if (this.players.size < CONFIG.MIN_PLAYERS) {
+      return false;
+    }
+
+    this.state = 'playing';
+    this.startedAt = Date.now();
+
+    // Shuffle deck
+    this.deck.shuffle();
+
+    // Deal cards to players
+    const playerArray = Array.from(this.players.values());
+    const hands = this.deck.dealHands(playerArray.length, CONFIG.STARTING_HAND_SIZE);
+    playerArray.forEach((player, index) => {
+      player.setHand(hands[index]);
+      player.sortHand();
+    });
+
+    // Find a starting card
+    const startingCard = this.deck.findStartingCard();
+    if (startingCard) {
+      this.topCard = startingCard;
+      this.deck.discard(startingCard);
+      this.currentColor = startingCard.color;
+    }
+
+    // Set first player
+    this.currentPlayerIndex = 0;
+    this.updateActivity();
+
+    return true;
+  }
+
+  /**
+   * Play a card
+   */
+  playCard(playerId: string, cardId: string, chosenColor?: Color): {
+    success: boolean;
+    error?: string;
+    card?: Card;
+    eliminatedPlayers?: string[];
+  } {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    if (this.state !== 'playing') {
+      return { success: false, error: 'Game not in progress' };
+    }
+
+    if (!this.isPlayerTurn(playerId)) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    const card = player.getCard(cardId);
+    if (!card) {
+      return { success: false, error: 'Card not in hand' };
+    }
+
+    // Validate card can be played
+    if (!this.topCard || !canPlayCard(card, this.topCard, this.currentColor, this.pendingPenalty)) {
+      return { success: false, error: 'Invalid card play' };
+    }
+
+    // Wild cards require color selection
+    if (requiresColorSelection(card.type) && !chosenColor) {
+      return { success: false, error: 'Must choose a color for wild card' };
+    }
+
+    // Remove card from player's hand
+    player.removeCard(cardId);
+
+    // Add to discard pile
+    this.deck.discard(card);
+    this.topCard = card;
+
+    // Set color
+    if (chosenColor) {
+      this.currentColor = chosenColor;
+    } else {
+      this.currentColor = card.color;
+    }
+
+    // Apply card effects and get eliminated players
+    const eliminatedPlayers = this.applyCardEffects(card, player, chosenColor);
+
+    // Check if player won the round
+    if (player.getHandSize() === 0 && player.calledUno) {
+      this.endRound(player);
+    }
+
+    this.updateActivity();
+
+    return { success: true, card, eliminatedPlayers };
+  }
+
+  /**
+   * Draw a card
+   */
+  drawCard(playerId: string): {
+    success: boolean;
+    error?: string;
+    cards?: Card[];
+    autoPlay?: boolean;
+    eliminatedPlayer?: boolean;
+  } {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    if (this.state !== 'playing') {
+      return { success: false, error: 'Game not in progress' };
+    }
+
+    if (!this.isPlayerTurn(playerId)) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    const drawnCards: Card[] = [];
+
+    // If there's a pending penalty, player must draw that many cards
+    if (this.pendingPenalty > 0) {
+      const cards = this.deck.drawMultiple(this.pendingPenalty);
+      player.addCards(cards);
+      drawnCards.push(...cards);
+      this.pendingPenalty = 0;
+      this.pendingPenaltyType = null;
+
+      // Check mercy rule
+      if (player.getHandSize() >= CONFIG.MAX_HAND_SIZE_LIMIT) {
+        player.eliminate();
+        this.nextTurn();
+        this.checkGameEnd();
+        this.updateActivity();
+        return { success: true, cards: drawnCards, eliminatedPlayer: true };
+      }
+
+      this.nextTurn();
+      this.updateActivity();
+      return { success: true, cards: drawnCards };
+    }
+
+    // Draw until playable rule
+    let drawnPlayable = false;
+    let maxDraws = 20; // Safety limit
+    let drawCount = 0;
+
+    while (!drawnPlayable && drawCount < maxDraws) {
+      const card = this.deck.draw();
+      if (!card) {
+        break; // No more cards
+      }
+
+      drawnCards.push(card);
+      drawCount++;
+
+      // Check if drawn card is playable
+      if (this.topCard && canPlayCard(card, this.topCard, this.currentColor, 0)) {
+        drawnPlayable = true;
+        player.addCard(card);
+        break;
+      }
+
+      player.addCard(card);
+
+      // Check mercy rule after each draw
+      if (player.getHandSize() >= CONFIG.MAX_HAND_SIZE_LIMIT) {
+        player.eliminate();
+        this.nextTurn();
+        this.checkGameEnd();
+        this.updateActivity();
+        return { success: true, cards: drawnCards, eliminatedPlayer: true };
+      }
+    }
+
+    this.updateActivity();
+
+    // Don't auto-advance turn if player drew a playable card
+    if (!drawnPlayable) {
+      this.nextTurn();
+    }
+
+    return { success: true, cards: drawnCards, autoPlay: drawnPlayable };
+  }
+
+  /**
+   * Apply effects of a played card
+   */
+  private applyCardEffects(card: Card, player: Player, chosenColor?: Color): string[] {
+    const eliminatedPlayers: string[] = [];
+
+    // Handle draw cards
+    if (isDrawCard(card.type)) {
+      this.pendingPenalty = getDrawPenalty(card.type);
+      this.pendingPenaltyType = card.type;
+    }
+
+    // Handle reverse
+    if (triggersReverse(card)) {
+      this.direction *= -1;
+    }
+
+    // Handle skip
+    if (skipsNextPlayer(card)) {
+      this.nextTurn();
+    }
+
+    // Handle skip all
+    if (skipsAllPlayers(card)) {
+      // Player plays again (don't advance turn)
+      return eliminatedPlayers;
+    }
+
+    // Handle discard all
+    if (triggersDiscardAll(card)) {
+      const discardedCards = player.removeCardsByColor(card.color!);
+      discardedCards.forEach((c) => this.deck.discard(c));
+    }
+
+    // Handle special number cards
+    if (triggersHandSwap(card)) {
+      this.waitingForPlayerChoice = true;
+      return eliminatedPlayers;
+    }
+
+    if (triggersHandPass(card)) {
+      this.passHands();
+    }
+
+    // Handle Color Roulette
+    if (isColorRoulette(card) && chosenColor) {
+      this.waitingForPlayerChoice = false;
+      // Next player will draw until they get the chosen color
+      // This is handled in the next player's turn
+    }
+
+    // Advance to next turn (unless skip all was played)
+    if (!skipsAllPlayers(card)) {
+      this.nextTurn();
+    }
+
+    return eliminatedPlayers;
+  }
+
+  /**
+   * Swap hands between two players (for 7 card)
+   */
+  swapHands(playerId: string, targetId: string): boolean {
+    const player = this.players.get(playerId);
+    const target = this.players.get(targetId);
+
+    if (!player || !target || player === target) {
+      return false;
+    }
+
+    const tempHand = player.hand;
+    player.setHand(target.hand);
+    target.setHand(tempHand);
+
+    this.waitingForPlayerChoice = false;
+    this.nextTurn();
+    this.updateActivity();
+
+    return true;
+  }
+
+  /**
+   * Pass all hands in the current direction (for 0 card)
+   */
+  private passHands(): void {
+    const playerArray = this.getActivePlayers();
+    if (playerArray.length < 2) {
+      return;
+    }
+
+    const hands = playerArray.map((p) => p.hand);
+
+    if (this.direction === 1) {
+      // Clockwise - each player gets the hand from their left
+      const lastHand = hands[hands.length - 1];
+      for (let i = hands.length - 1; i > 0; i--) {
+        playerArray[i].setHand(hands[i - 1]);
+      }
+      playerArray[0].setHand(lastHand);
+    } else {
+      // Counter-clockwise - each player gets the hand from their right
+      const firstHand = hands[0];
+      for (let i = 0; i < hands.length - 1; i++) {
+        playerArray[i].setHand(hands[i + 1]);
+      }
+      playerArray[playerArray.length - 1].setHand(firstHand);
+    }
+  }
+
+  /**
+   * Call UNO
+   */
+  callUno(playerId: string): boolean {
+    const player = this.players.get(playerId);
+    if (!player) {
+      return false;
+    }
+
+    if (player.getHandSize() === 1) {
+      player.callUno();
+      this.updateActivity();
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Move to next player's turn
+   */
+  private nextTurn(): void {
+    const activePlayers = this.getActivePlayers();
+    if (activePlayers.length === 0) {
+      return;
+    }
+
+    do {
+      this.currentPlayerIndex += this.direction;
+
+      // Wrap around
+      if (this.currentPlayerIndex >= activePlayers.length) {
+        this.currentPlayerIndex = 0;
+      } else if (this.currentPlayerIndex < 0) {
+        this.currentPlayerIndex = activePlayers.length - 1;
+      }
+
+      const currentPlayer = activePlayers[this.currentPlayerIndex];
+      if (currentPlayer && !currentPlayer.isEliminated && currentPlayer.isConnected) {
+        break;
+      }
+    } while (true);
+  }
+
+  /**
+   * Get currently active (non-eliminated, connected) players
+   */
+  getActivePlayers(): Player[] {
+    return Array.from(this.players.values()).filter(
+      (p) => !p.isEliminated && p.isConnected
+    );
+  }
+
+  /**
+   * Get current player
+   */
+  getCurrentPlayer(): Player | null {
+    const activePlayers = this.getActivePlayers();
+    return activePlayers[this.currentPlayerIndex] || null;
+  }
+
+  /**
+   * Check if it's a specific player's turn
+   */
+  isPlayerTurn(playerId: string): boolean {
+    const currentPlayer = this.getCurrentPlayer();
+    return currentPlayer?.id === playerId;
+  }
+
+  /**
+   * End the current round
+   */
+  private endRound(winner: Player): void {
+    // Calculate points
+    let points = 0;
+    this.players.forEach((player) => {
+      if (player.id !== winner.id && !player.isEliminated) {
+        points += player.calculateHandScore();
+      }
+    });
+
+    winner.addScore(points);
+
+    // Check if winner reached target score
+    if (winner.score >= CONFIG.TARGET_SCORE) {
+      this.endGame(winner);
+    } else {
+      this.startNextRound();
+    }
+  }
+
+  /**
+   * Start next round
+   */
+  private startNextRound(): void {
+    this.roundNumber++;
+
+    // Clear all hands
+    this.players.forEach((player) => {
+      player.clearHand();
+    });
+
+    // Reset deck
+    this.deck.reset();
+    this.deck.shuffle();
+
+    // Deal new hands
+    const playerArray = Array.from(this.players.values());
+    const hands = this.deck.dealHands(playerArray.length, CONFIG.STARTING_HAND_SIZE);
+    playerArray.forEach((player, index) => {
+      player.setHand(hands[index]);
+      player.sortHand();
+    });
+
+    // New starting card
+    const startingCard = this.deck.findStartingCard();
+    if (startingCard) {
+      this.topCard = startingCard;
+      this.deck.discard(startingCard);
+      this.currentColor = startingCard.color;
+    }
+
+    // Reset game state
+    this.pendingPenalty = 0;
+    this.pendingPenaltyType = null;
+    this.currentPlayerIndex = 0;
+    this.direction = 1;
+  }
+
+  /**
+   * End the game
+   */
+  private endGame(winner: Player): void {
+    this.state = 'finished';
+    this.updateActivity();
+  }
+
+  /**
+   * Check if game should end (only one player left)
+   */
+  private checkGameEnd(): void {
+    const activePlayers = this.getActivePlayers();
+    if (activePlayers.length === 1) {
+      this.endGame(activePlayers[0]);
+    } else if (activePlayers.length === 0) {
+      this.state = 'finished';
+    }
+  }
+
+  /**
+   * Update last activity timestamp
+   */
+  updateActivity(): void {
+    this.lastActivity = Date.now();
+  }
+
+  /**
+   * Check if room is inactive and should be cleaned up
+   */
+  isInactive(): boolean {
+    return Date.now() - this.lastActivity > CONFIG.ROOM_CLEANUP_TIMEOUT;
+  }
+
+  /**
+   * Convert to game state
+   */
+  toGameState(): GameState {
+    return {
+      roomId: this.id,
+      state: this.state,
+      players: Array.from(this.players.values()),
+      currentPlayerIndex: this.currentPlayerIndex,
+      direction: this.direction,
+      currentColor: this.currentColor,
+      topCard: this.topCard,
+      deckCount: this.deck.getCount(),
+      pendingPenalty: this.pendingPenalty,
+      pendingPenaltyType: this.pendingPenaltyType,
+      waitingForPlayerChoice: this.waitingForPlayerChoice,
+      roundNumber: this.roundNumber,
+      targetScore: CONFIG.TARGET_SCORE,
+      createdAt: this.createdAt,
+      startedAt: this.startedAt,
+    };
+  }
+
+  /**
+   * Convert to client game state for a specific player
+   */
+  toClientGameState(playerId: string): ClientGameState {
+    const player = this.players.get(playerId);
+    const myHand = player ? player.hand : [];
+
+    return {
+      roomId: this.id,
+      state: this.state,
+      players: Array.from(this.players.values()).map((p) => p.toPublicPlayer()),
+      myHand,
+      myPlayerId: playerId,
+      currentPlayerIndex: this.currentPlayerIndex,
+      direction: this.direction,
+      currentColor: this.currentColor,
+      topCard: this.topCard,
+      deckCount: this.deck.getCount(),
+      pendingPenalty: this.pendingPenalty,
+      pendingPenaltyType: this.pendingPenaltyType,
+      waitingForPlayerChoice: this.waitingForPlayerChoice,
+      roundNumber: this.roundNumber,
+      targetScore: CONFIG.TARGET_SCORE,
+    };
+  }
+}
