@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useSocket, useSocketEvent, useStartGame } from '@/lib/socket/SocketContext';
 import { formatRoomCode } from '@/lib/utils/roomCode';
-import { PlayerJoinedPayload, PlayerLeftPayload, GameStartedPayload } from '@/lib/game/types';
+import { PlayerJoinedPayload, PlayerLeftPayload, GameStartedPayload, ClientGameState } from '@/lib/game/types';
 import { SERVER_EVENTS } from '@/lib/socket/events';
 
 export default function LobbyPage() {

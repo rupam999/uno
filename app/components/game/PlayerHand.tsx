@@ -108,7 +108,7 @@ export function PlayerHand({
                   card={card}
                   size="small"
                   selected={selectedCardId === card.id}
-                  playable={isPlayable}
+                  playable={!!isPlayable}
                   onClick={() => handleCardClick(card)}
                 />
               </div>

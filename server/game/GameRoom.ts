@@ -289,7 +289,7 @@ export class GameRoom {
       this.nextTurn();
     }
 
-    return { success: true, cards: drawnCards, autoPlay: false, canPlay: isPlayable };
+    return { success: true, cards: drawnCards, autoPlay: false, canPlay: !!isPlayable };
   }
 
   /**
