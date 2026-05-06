@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ClientGameState, Color } from '@/lib/game/types';
 import { useSocket, useSocketEvent } from '@/lib/socket/SocketContext';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@/lib/socket/events';
 import { PlayerHand } from './PlayerHand';
 import { PlayArea } from './PlayArea';
 import { OpponentHands } from './OpponentHands';
+import { GameNotification } from './GameNotification';
+import { WinnerCelebration } from './WinnerCelebration';
 import { requiresColorSelection } from '@/server/game/validators';
 
 interface GameBoardProps {
@@ -19,11 +21,21 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [pendingCardId, setPendingCardId] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
+  const [showTurnNotification, setShowTurnNotification] = useState(false);
+  const [showWinner, setShowWinner] = useState(false);
+  const [winnerData, setWinnerData] = useState<{ name: string; score?: number } | null>(null);
 
   const currentGameState = gameState || initialGameState;
   const isMyTurn =
     currentGameState.players[currentGameState.currentPlayerIndex]?.id ===
     currentGameState.myPlayerId;
+
+  // Show turn notification when it becomes player's turn
+  useEffect(() => {
+    if (isMyTurn && gameState) {
+      setShowTurnNotification(true);
+    }
+  }, [isMyTurn, gameState]);
 
   // Show notification
   const showNotification = (message: string) => {
@@ -73,7 +85,11 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
 
   // Listen for game ended
   useSocketEvent(SERVER_EVENTS.GAME_ENDED, (data: any) => {
-    showNotification(`🎉 ${data.winnerName} wins the game!`);
+    setWinnerData({
+      name: data.winnerName,
+      score: data.finalScores?.[data.winnerId],
+    });
+    setShowWinner(true);
   });
 
   // Play a card
@@ -259,6 +275,30 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
           />
         </div>
       </div>
+
+      {/* Turn Notification */}
+      <GameNotification
+        type="your-turn"
+        message="YOUR TURN!"
+        subMessage="Make your move"
+        show={showTurnNotification}
+        duration={2000}
+        onClose={() => setShowTurnNotification(false)}
+      />
+
+      {/* Winner Celebration */}
+      {showWinner && winnerData && (
+        <WinnerCelebration
+          show={showWinner}
+          winnerName={winnerData.name}
+          winnerScore={winnerData.score}
+          reason="cards-finished"
+          onClose={() => {
+            setShowWinner(false);
+            window.location.href = '/';
+          }}
+        />
+      )}
 
       {/* Notification Toast */}
       {notification && (
