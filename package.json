@@ -10,18 +10,21 @@
     "dev": "tsx watch server/index.ts",
     "dev:frontend": "next dev",
     "dev:server": "tsx watch server/index.ts",
-    "build": "npm install --no-package-lock --legacy-peer-deps && npm run build:frontend && npm run build:server",
+    "build": "npm run build:frontend && npm run build:server",
     "build:frontend": "next build",
     "build:server": "echo 'Server uses tsx in production'",
     "start": "NODE_ENV=production tsx server/index.ts",
     "start:frontend": "next start",
     "start:server": "NODE_ENV=production node dist/server/index.js",
-    "lint": "eslint",
-    "postinstall": "echo 'Dependencies installed successfully'"
+    "lint": "eslint"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.2.4",
     "@tailwindcss/vite": "^4.2.4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "next": "16.2.4",
     "postcss": "^8.5.14",
     "react": "19.2.4",
@@ -34,10 +37,6 @@
     "uuid": "^14.0.0"
   },
   "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4"
   }

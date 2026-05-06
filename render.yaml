@@ -4,13 +4,11 @@ services:
     runtime: node
     region: oregon
     plan: free
-    buildCommand: npm run build
+    buildCommand: npm install --legacy-peer-deps && npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: NODE_VERSION
         value: 20.18.0
-      - key: NPM_CONFIG_LOGLEVEL
-        value: error
     healthCheckPath: /
