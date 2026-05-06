@@ -202,7 +202,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         <div className="flex items-center justify-between px-3 py-2 bg-black/40 backdrop-blur-md border-b border-purple-500/20 shadow-lg">
           <div>
             <h1 className="text-base md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600">
-              UNO NO MERCY
+              UNO BY ALLIANCE
             </h1>
             <p className="text-xs text-purple-300 font-medium">
               Round {currentGameState.roundNumber} • Target: {currentGameState.targetScore}

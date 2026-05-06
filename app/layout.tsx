@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UNO No Mercy - Multiplayer Card Game",
-  description: "Play UNO No Mercy online with friends in real-time",
+  title: "UNO by Alliance - Multiplayer Card Game",
+  description: "Play UNO online with friends in real-time by Alliance",
 };
 
 export default function RootLayout({

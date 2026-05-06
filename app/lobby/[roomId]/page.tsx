@@ -218,7 +218,7 @@ export default function LobbyPage() {
         {/* Game Info */}
         <div className="mt-6 text-center">
           <p className="text-gray-500 text-sm">
-            UNO No Mercy • 2-10 players • Draw stacking enabled
+            UNO by Alliance • 2-10 players • Draw stacking enabled
           </p>
         </div>
       </div>

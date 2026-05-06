@@ -85,7 +85,7 @@ export default function HomePage() {
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-2 drop-shadow-2xl">
             UNO
           </h1>
-          <p className="text-xl text-red-400 font-semibold drop-shadow-lg">No Mercy</p>
+          <p className="text-xl text-purple-400 font-semibold drop-shadow-lg">by Alliance</p>
           <p className="text-sm text-gray-300 mt-2">
             Multiplayer Card Game
           </p>
@@ -187,7 +187,7 @@ export default function HomePage() {
         </div>
 
         <p className="text-gray-500 text-center mt-6 text-sm">
-          Built with Next.js & Socket.IO
+          UNO by Alliance • 2-10 players
         </p>
       </div>
     </div>
