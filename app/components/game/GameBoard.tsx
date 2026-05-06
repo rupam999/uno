@@ -100,7 +100,8 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       if (!card) return;
 
       // Check if wild card needs color selection
-      if (requiresColorSelection(card.type)) {
+      // Wild draw cards (6/10) don't need color when stacking
+      if (requiresColorSelection(card.type, currentGameState.pendingPenalty)) {
         setPendingCardId(cardId);
         setShowColorPicker(true);
         return;

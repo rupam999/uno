@@ -23,7 +23,25 @@ export function canPlayCard(
     }
     const cardPenalty = getDrawPenalty(cardToPlay.type);
     const topCardPenalty = getDrawPenalty(topCard.type);
-    return cardPenalty >= topCardPenalty;
+
+    // Card must have equal or higher penalty
+    if (cardPenalty < topCardPenalty) {
+      return false;
+    }
+
+    // If top card has a color (like draw_4 or draw_2), the stacking card must:
+    // 1. Match the color if it's a colored card (draw_2, draw_4)
+    // 2. OR be a wild draw card (wild_draw_6, wild_draw_10, wild_reverse_draw_4)
+    if (topCard.color !== null && currentColor !== null) {
+      // Wild draw cards can always stack
+      if (isWildCard(cardToPlay.type)) {
+        return true;
+      }
+      // Colored draw cards must match the current color
+      return cardToPlay.color === currentColor;
+    }
+
+    return true;
   }
 
   // Wild cards can always be played (when no pending penalty)
@@ -108,8 +126,16 @@ export function isValidColor(color: any): color is Color {
 
 /**
  * Check if a card requires color selection (wild cards)
+ * Note: Wild draw cards (6/10) don't need color when stacking on a draw penalty
  */
-export function requiresColorSelection(cardType: CardType): boolean {
+export function requiresColorSelection(cardType: CardType, pendingPenalty?: number): boolean {
+  // If there's a pending penalty and this is a stackable wild draw card, no color needed
+  if (pendingPenalty && pendingPenalty > 0 &&
+      (cardType === 'wild_draw_6' || cardType === 'wild_draw_10')) {
+    return false;
+  }
+
+  // Otherwise all wild cards need color selection
   return isWildCard(cardType);
 }
 

@@ -177,8 +177,8 @@ export class GameRoom {
       return { success: false, error: 'Invalid card play' };
     }
 
-    // Wild cards require color selection
-    if (requiresColorSelection(card.type) && !chosenColor) {
+    // Wild cards require color selection (unless stacking wild draw 6/10)
+    if (requiresColorSelection(card.type, this.pendingPenalty) && !chosenColor) {
       return { success: false, error: 'Must choose a color for wild card' };
     }
 
@@ -192,6 +192,9 @@ export class GameRoom {
     // Set color
     if (chosenColor) {
       this.currentColor = chosenColor;
+    } else if (this.pendingPenalty > 0 && (card.type === 'wild_draw_6' || card.type === 'wild_draw_10')) {
+      // When stacking wild draw 6/10 without color choice, keep current color
+      // Color stays as is
     } else {
       this.currentColor = card.color;
     }
