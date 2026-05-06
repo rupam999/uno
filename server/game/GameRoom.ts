@@ -594,13 +594,23 @@ export class GameRoom {
     const player = this.players.get(playerId);
     const myHand = player ? player.hand : [];
 
+    // Get the current player from active players list
+    const activePlayers = this.getActivePlayers();
+    const currentActivePlayer = activePlayers[this.currentPlayerIndex];
+
+    // Convert to index in full players array
+    const allPlayers = Array.from(this.players.values());
+    const currentPlayerIndexInFullArray = allPlayers.findIndex(
+      (p) => p.id === currentActivePlayer?.id
+    );
+
     return {
       roomId: this.id,
       state: this.state,
-      players: Array.from(this.players.values()).map((p) => p.toPublicPlayer()),
+      players: allPlayers.map((p) => p.toPublicPlayer()),
       myHand,
       myPlayerId: playerId,
-      currentPlayerIndex: this.currentPlayerIndex,
+      currentPlayerIndex: currentPlayerIndexInFullArray >= 0 ? currentPlayerIndexInFullArray : 0,
       direction: this.direction,
       currentColor: this.currentColor,
       topCard: this.topCard,

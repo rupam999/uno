@@ -82,14 +82,6 @@ export function WinnerCelebration({
             {getMessage()}
           </div>
 
-          {winnerScore !== undefined && (
-            <div className="bg-white/20 rounded-2xl px-6 py-3 inline-block backdrop-blur">
-              <p className="text-white font-black text-2xl md:text-3xl">
-                Score: {winnerScore}
-              </p>
-            </div>
-          )}
-
           {/* Celebration Text */}
           <div className="pt-4">
             <p className="text-white font-black text-3xl md:text-5xl animate-pulse">

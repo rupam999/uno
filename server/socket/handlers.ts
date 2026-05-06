@@ -348,6 +348,23 @@ export function setupSocketHandlers(io: SocketIOServer): void {
           io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
         });
 
+        // Check if game ended (after elimination)
+        if (room.state === 'finished') {
+          const winner = Array.from(room.players.values()).find((p) => !p.isEliminated);
+          if (winner) {
+            const scores: Record<string, number> = {};
+            room.players.forEach((p) => {
+              scores[p.id] = p.score;
+            });
+
+            io.to(roomId).emit(SERVER_EVENTS.GAME_ENDED, {
+              winnerId: winner.id,
+              winnerName: winner.name,
+              finalScores: scores,
+            });
+          }
+        }
+
         // Emit turn changed if turn advanced
         if (!result.autoPlay) {
           const currentPlayer = room.getCurrentPlayer();
