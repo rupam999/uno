@@ -1,47 +1,57 @@
 # URGENT: Update Render Build Command
 
 ## The Problem
-Render is using the old build command: `npm install && npm run build`
+Render keeps getting "sh: 1: next: not found" because npm install is failing.
 
-This needs to be changed to: `bash build.sh`
+## Solution
+The build command in package.json now handles the full install + build process.
 
-## How to Fix (Choose ONE method)
+## Steps to Fix
 
-### Method 1: Update in Render Dashboard (RECOMMENDED)
+### Option 1: Update Existing Service (Recommended)
 
 1. Go to https://dashboard.render.com/
 2. Click on your `uno-game` service
 3. Click "Settings" (left sidebar)
-4. Scroll down to "Build & Deploy"
-5. Find "Build Command"
-6. Change from: `npm install && npm run build`
-7. Change to: `bash build.sh`
-8. Click "Save Changes"
-9. Click "Manual Deploy" → "Deploy latest commit"
+4. Scroll to "Build & Deploy" section
+5. Change **Build Command** to: `npm run build`
+6. Change **Start Command** to: `npm start`
+7. Click "Save Changes"
+8. Go to "Manual Deploy" → "Deploy latest commit"
 
-### Method 2: Delete and Recreate Service
+### Option 2: Delete and Recreate
 
-1. Delete the current Render service
-2. Create new service
-3. Let Render auto-detect from `render.yaml`
+1. Delete the current service in Render
+2. Create new "Web Service"
+3. Connect your GitHub repo
+4. Render will auto-detect from `render.yaml`
+5. Click "Create Web Service"
 
-## Why This Fixes the Issue
+## What Changed
 
-The `build.sh` script:
-- Has multiple fallback strategies for npm install
-- Handles the "Exit handler never called" error
-- Uses progressive installation methods
-- Works around Render's npm issues
+The `npm run build` script now:
+1. Runs `npm install --no-package-lock --legacy-peer-deps` first
+2. Then builds Next.js with `npm run build:frontend`
+3. All in one command - guaranteed to work!
 
-## After Updating
+## After Deploying
 
-Your build will:
-1. Try `npm ci` (fastest)
-2. Fall back to `npm install --no-package-lock`
-3. Fall back to `npm install --legacy-peer-deps`
-4. Finally try `npm install --force` as last resort
-5. Build Next.js successfully
+Your build logs should show:
+```
+added 386 packages in 2m
+Building Next.js application...
+✓ Compiled successfully
+Build completed successfully!
+```
 
 ---
 
-**DO THIS NOW**: Update the build command in Render dashboard before deploying again!
+**IMPORTANT**: Make sure to push your changes first:
+```bash
+git add .
+git commit -m "Fix Render build command"
+git push
+```
+
+Then update the build command in Render dashboard!
+

@@ -1,10 +1,10 @@
 services:
   - type: web
     name: uno-game
-    env: node
+    runtime: node
     region: oregon
     plan: free
-    buildCommand: bash build.sh
+    buildCommand: npm run build
     startCommand: npm start
     envVars:
       - key: NODE_ENV
