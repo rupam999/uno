@@ -30,12 +30,10 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     currentGameState.players[currentGameState.currentPlayerIndex]?.id ===
     currentGameState.myPlayerId;
 
-  // Show turn notification when it becomes player's turn
+  // Keep turn notification visible during player's turn
   useEffect(() => {
-    if (isMyTurn && gameState) {
-      setShowTurnNotification(true);
-    }
-  }, [isMyTurn, gameState]);
+    setShowTurnNotification(isMyTurn);
+  }, [isMyTurn]);
 
   // Show notification
   const showNotification = (message: string) => {
@@ -205,7 +203,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               UNO BY ALLIANCE
             </h1>
             <p className="text-xs text-purple-300 font-medium">
-              Round {currentGameState.roundNumber} • Target: {currentGameState.targetScore}
+              {currentGameState.players[currentGameState.currentPlayerIndex]?.name}'s turn
             </p>
           </div>
           <button
@@ -218,25 +216,42 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
 
         {/* Main Game Area */}
         <div className="flex-1 relative overflow-hidden min-h-0">
-          {/* Game Table (Oval) */}
+          {/* Game Table (Rectangle) */}
           <div className="absolute inset-0 flex items-center justify-center px-2 py-4 md:p-4">
             {/* Table Surface */}
-            <div className="relative w-full h-full max-w-7xl">
-              {/* Outer glow */}
-              <div className="absolute inset-2 md:inset-6 bg-gradient-to-br from-green-600/20 to-emerald-700/20 rounded-[50%] blur-2xl"></div>
+            <div className="relative w-full h-full max-w-6xl">
+              {/* Outer glow - multi-layer for depth */}
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/30 via-green-600/20 to-teal-700/30 rounded-3xl blur-3xl"></div>
+              <div className="absolute inset-4 bg-gradient-to-tl from-green-400/20 to-emerald-600/20 rounded-3xl blur-2xl"></div>
 
-              {/* Oval Table */}
-              <div className="absolute inset-4 md:inset-8 bg-gradient-to-br from-green-700 via-green-800 to-green-900 rounded-[50%] shadow-2xl border-4 md:border-8 border-amber-800/70">
-                {/* Table shine effect */}
-                <div className="absolute inset-0 rounded-[50%] bg-gradient-to-br from-white/10 via-transparent to-transparent"></div>
+              {/* Rectangular Table with Poker Aesthetic */}
+              <div className="absolute inset-4 md:inset-8 bg-gradient-to-br from-green-800 via-emerald-900 to-green-950 rounded-2xl md:rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] border-[6px] md:border-8 border-amber-900/60 relative overflow-hidden">
+                {/* Inner border highlight */}
+                <div className="absolute inset-0 rounded-2xl md:rounded-3xl border-2 border-amber-700/40"></div>
 
-                {/* Table Pattern */}
-                <div className="absolute inset-0 rounded-[50%] opacity-30 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]" />
+                {/* Leather padding rail effect */}
+                <div className="absolute inset-0 rounded-2xl md:rounded-3xl shadow-[inset_0_0_30px_rgba(0,0,0,0.5),inset_0_20px_40px_rgba(0,0,0,0.3)]"></div>
 
-                {/* Felt texture */}
-                <div className="absolute inset-0 rounded-[50%] opacity-5" style={{
-                  backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 2px, rgba(0,0,0,.5) 2px, rgba(0,0,0,.5) 4px)'
+                {/* Shine/gloss effect */}
+                <div className="absolute inset-0 rounded-2xl md:rounded-3xl bg-gradient-to-br from-white/10 via-transparent to-transparent opacity-60"></div>
+
+                {/* Felt texture - more subtle and professional */}
+                <div className="absolute inset-0 rounded-2xl md:rounded-3xl opacity-[0.15]" style={{
+                  backgroundImage: `
+                    repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.4) 2px, rgba(0,0,0,0.4) 4px),
+                    repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(0,0,0,0.4) 2px, rgba(0,0,0,0.4) 4px)
+                  `,
+                  backgroundSize: '4px 4px'
                 }}></div>
+
+                {/* Radial vignette */}
+                <div className="absolute inset-0 rounded-2xl md:rounded-3xl bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_50%,rgba(0,0,0,0.4)_100%)]"></div>
+
+                {/* Corner decorations */}
+                <div className="absolute top-2 left-2 w-8 h-8 md:w-12 md:h-12 border-t-2 border-l-2 border-amber-600/50 rounded-tl-xl"></div>
+                <div className="absolute top-2 right-2 w-8 h-8 md:w-12 md:h-12 border-t-2 border-r-2 border-amber-600/50 rounded-tr-xl"></div>
+                <div className="absolute bottom-2 left-2 w-8 h-8 md:w-12 md:h-12 border-b-2 border-l-2 border-amber-600/50 rounded-bl-xl"></div>
+                <div className="absolute bottom-2 right-2 w-8 h-8 md:w-12 md:h-12 border-b-2 border-r-2 border-amber-600/50 rounded-br-xl"></div>
               </div>
 
               {/* Opponents positioned around table */}
@@ -276,14 +291,14 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         </div>
       </div>
 
-      {/* Turn Notification */}
+      {/* Turn Notification - Stays visible during your turn */}
       <GameNotification
         type="your-turn"
         message="YOUR TURN!"
         subMessage="Make your move"
         show={showTurnNotification}
-        duration={2000}
-        onClose={() => setShowTurnNotification(false)}
+        duration={0}
+        onClose={() => {}}
       />
 
       {/* Winner Celebration */}

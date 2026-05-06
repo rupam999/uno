@@ -59,7 +59,11 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId }: Oppon
                       <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
                     )}
                   </div>
-                  <p className="text-purple-300 text-[10px] md:text-xs font-semibold">{opponent.cardCount} cards</p>
+                  {isCurrentTurn ? (
+                    <p className="text-green-400 text-[10px] md:text-xs font-black animate-pulse">Playing now...</p>
+                  ) : (
+                    <p className="text-purple-300 text-[10px] md:text-xs font-semibold">{opponent.cardCount} cards</p>
+                  )}
                 </div>
               </div>
 

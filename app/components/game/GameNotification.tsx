@@ -23,6 +23,7 @@ export function GameNotification({
 
   useEffect(() => {
     setVisible(show);
+    // Only set timer if duration > 0
     if (show && duration > 0 && onClose) {
       const timer = setTimeout(() => {
         setVisible(false);
