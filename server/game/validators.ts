@@ -29,27 +29,29 @@ export function canPlayCard(
       return false;
     }
 
-    // If top card has a color (like draw_4 or draw_2), the stacking card must:
-    // 1. Match the color if it's a colored card (draw_2, draw_4)
-    // 2. OR be a wild draw card (wild_draw_6, wild_draw_10, wild_reverse_draw_4)
-    if (topCard.color !== null && currentColor !== null) {
-      // Wild draw cards can always stack
-      if (isWildCard(cardToPlay.type)) {
-        return true;
-      }
-      // Colored draw cards must match the current color
+    // Wild draw cards can always stack regardless of color
+    if (isWildCard(cardToPlay.type)) {
+      return true;
+    }
+
+    // For colored draw cards (draw_2, draw_4), they can stack if:
+    // 1. Same penalty or higher (already checked above)
+    // 2. Match the current color (if there is a current color)
+    if (currentColor !== null && cardToPlay.color !== null) {
       return cardToPlay.color === currentColor;
     }
 
+    // If no current color (shouldn't happen), allow the stack
     return true;
   }
 
-  // Wild cards can always be played (when no pending penalty)
+  // No pending penalty - normal play rules
+  // Wild cards can always be played
   if (isWildCard(cardToPlay.type)) {
     return true;
   }
 
-  // Match by color
+  // Match by color - can play ANY card of the current color
   if (cardToPlay.color === currentColor || cardToPlay.color === topCard.color) {
     return true;
   }

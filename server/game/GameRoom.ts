@@ -307,9 +307,11 @@ export class GameRoom {
       this.pendingPenaltyType = card.type;
     }
 
-    // Handle reverse
+    // Handle reverse - player can play again (skips everyone)
     if (triggersReverse(card)) {
       this.direction *= -1;
+      // Player plays again (don't advance turn)
+      return eliminatedPlayers;
     }
 
     // Handle skip
@@ -346,8 +348,8 @@ export class GameRoom {
       // This is handled in the next player's turn
     }
 
-    // Advance to next turn (unless skip all was played)
-    if (!skipsAllPlayers(card)) {
+    // Advance to next turn (unless reverse or skip all was played)
+    if (!skipsAllPlayers(card) && !triggersReverse(card)) {
       this.nextTurn();
     }
 
