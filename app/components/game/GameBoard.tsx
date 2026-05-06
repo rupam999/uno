@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
+import Image from 'next/image';
 import { ClientGameState, Color } from '@/lib/game/types';
 import { useSocket, useSocketEvent } from '@/lib/socket/SocketContext';
 import { SERVER_EVENTS, CLIENT_EVENTS } from '@/lib/socket/events';
@@ -198,13 +199,22 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       <div className="relative w-full h-full flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between px-3 py-2 bg-black/40 backdrop-blur-md border-b border-purple-500/20 shadow-lg">
-          <div>
-            <h1 className="text-base md:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 via-pink-500 to-purple-600">
-              UNO BY ALLIANCE
-            </h1>
-            <p className="text-xs text-purple-300 font-medium">
-              {currentGameState.players[currentGameState.currentPlayerIndex]?.name}'s turn
-            </p>
+          <div className="flex items-center gap-2">
+            <Image
+              src="/assets/logo.png"
+              alt="UNO"
+              width={32}
+              height={32}
+              className="drop-shadow-lg"
+            />
+            <div>
+              <h1 className="text-sm md:text-lg font-black text-white drop-shadow-lg">
+                UNO BY ALLIANCE
+              </h1>
+              <p className="text-[10px] md:text-xs text-purple-300 font-medium">
+                {currentGameState.players[currentGameState.currentPlayerIndex]?.name}'s turn
+              </p>
+            </div>
           </div>
           <button
             onClick={() => window.location.href = '/'}

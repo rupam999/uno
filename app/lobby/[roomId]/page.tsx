@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useSocket, useSocketEvent, useStartGame } from '@/lib/socket/SocketContext';
 import { formatRoomCode } from '@/lib/utils/roomCode';
 import { PlayerJoinedPayload, PlayerLeftPayload, GameStartedPayload, ClientGameState } from '@/lib/game/types';
@@ -107,7 +108,16 @@ export default function LobbyPage() {
       <div className="w-full max-w-2xl">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-2 drop-shadow-2xl">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/assets/logo.png"
+              alt="UNO"
+              width={120}
+              height={120}
+              className="drop-shadow-2xl"
+            />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-2xl">
             Game Lobby
           </h1>
           <p className="text-gray-300">Waiting for players to join...</p>

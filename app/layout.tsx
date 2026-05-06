@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "UNO by Alliance - Multiplayer Card Game",
+  title: "UNO by Alliance",
   description: "Play UNO online with friends in real-time by Alliance",
 };
 

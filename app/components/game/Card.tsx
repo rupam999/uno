@@ -94,15 +94,20 @@ export function CardBack({
         height: `${height}px`,
       }}
     >
-      {/* Use the UNO logo as card back */}
-      <div className="absolute inset-0">
-        <Image
-          src="/cards/logo.png"
-          alt="Card back"
-          fill
-          className="object-cover rounded-xl"
-          sizes={`${width}px`}
-        />
+      {/* UNO Logo as card back */}
+      <div className="absolute inset-0 bg-gradient-to-br from-red-600 via-yellow-500 to-blue-600 rounded-xl">
+        <div className="absolute inset-0 flex items-center justify-center p-2">
+          <Image
+            src="/assets/logo.png"
+            alt="UNO"
+            width={width * 0.7}
+            height={height * 0.7}
+            className="object-contain drop-shadow-2xl"
+          />
+        </div>
+
+        {/* Border decoration */}
+        <div className="absolute inset-2 border-4 border-white/30 rounded-lg"></div>
       </div>
 
       {/* Card count badge */}

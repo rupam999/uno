@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useCreateRoom, useJoinRoom, useSocket } from '@/lib/socket/SocketContext';
 import { unformatRoomCode, formatRoomCode } from '@/lib/utils/roomCode';
 
@@ -82,12 +83,18 @@ export default function HomePage() {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-2 drop-shadow-2xl">
-            UNO
-          </h1>
-          <p className="text-xl text-purple-400 font-semibold drop-shadow-lg">by Alliance</p>
-          <p className="text-sm text-gray-300 mt-2">
-            Multiplayer Card Game
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/assets/logo.png"
+              alt="UNO"
+              width={160}
+              height={160}
+              className="drop-shadow-2xl animate-pulse-slow"
+              priority
+            />
+          </div>
+          <p className="text-2xl md:text-3xl text-purple-400 font-bold drop-shadow-lg tracking-wide">
+            by Alliance
           </p>
         </div>
 
