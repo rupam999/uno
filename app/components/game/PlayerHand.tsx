@@ -150,55 +150,46 @@ export function PlayerHand({
         )}
       </div>
 
-      {/* Cards at Bottom - Horizontal Line */}
-      <div className="absolute bottom-0 left-0 right-0 pb-4">
-        <div className="relative h-44 md:h-52">
-          {/* PLAY Button - Shows when card is selected */}
-          {selectedCardId && (
-            <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-4 z-40">
-              <button
-                onClick={handlePlaySelected}
-                className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-2xl px-12 py-5 rounded-2xl shadow-2xl shadow-green-500/50 transform hover:scale-110 transition-all animate-bounce"
-              >
-                ▶ PLAY
-              </button>
-            </div>
-          )}
+      {/* Cards at Bottom - Scrollable on mobile */}
+<div className="absolute bottom-0 left-0 right-0 pb-2 md:pb-4 flex justify-center">
+        <div className="overflow-x-auto overflow-y-visible scrollbar-hide px-2 max-w-full">
+          <div className="relative h-36 md:h-52 flex items-end justify-center gap-1" style={{ minWidth: 'min-content' }}>
+            {sortedCards.map((card, index) => {
+              const { y, angle } = getCardPosition(index, sortedCards.length);
+              const isPlayable =
+                isMyTurn &&
+                topCard &&
+                canPlayCard(card, topCard, currentColor as any, pendingPenalty);
 
-          {sortedCards.map((card, index) => {
-            const { x, y, angle } = getCardPosition(index, sortedCards.length);
-            const isPlayable =
-              isMyTurn &&
-              topCard &&
-              canPlayCard(card, topCard, currentColor as any, pendingPenalty);
-
-            return (
-              <div
-                key={card.id}
-                className="absolute left-1/2 bottom-0 transform -translate-x-1/2 transition-all duration-300"
-                style={{
-                  transform: `translateX(calc(-50% + ${x}px)) translateY(-${y}px) rotate(${angle}deg) ${
-                    selectedCardId === card.id ? 'translateY(-50px) scale(1.1)' : ''
-                  } ${isPlayable && isMyTurn ? 'translateY(-20px)' : ''}`,
-                  zIndex: selectedCardId === card.id ? 30 : 10 + index,
-                }}
-              >
+              return (
                 <div
-                  onClick={() => handleCardClick(card)}
-                  className={`cursor-pointer transition-transform ${
-                    isPlayable && isMyTurn ? 'hover:scale-105 hover:-translate-y-2' : ''
-                  }`}
+                  key={card.id}
+                  className="transition-all duration-300 shrink-0"
+                  style={{
+                    transform: `translateY(-${y}px) rotate(${angle}deg) ${
+                      selectedCardId === card.id ? 'translateY(-30px) scale(1.1)' : ''
+                    } ${isPlayable && isMyTurn ? 'translateY(-15px)' : ''}`,
+                    zIndex: selectedCardId === card.id ? 30 : 10 + index,
+                    marginLeft: index > 0 ? '-40px' : '0',
+                  }}
                 >
-                  <Card
-                    card={card}
-                    size="medium"
-                    selected={selectedCardId === card.id}
-                    playable={!!isPlayable}
-                  />
+                  <div
+                    onClick={() => handleCardClick(card)}
+                    className={`cursor-pointer transition-transform ${
+                      isPlayable && isMyTurn ? 'hover:scale-105 hover:-translate-y-2' : ''
+                    }`}
+                  >
+                    <Card
+                      card={card}
+                      size="small"
+                      selected={selectedCardId === card.id}
+                      playable={!!isPlayable}
+                    />
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
     </div>

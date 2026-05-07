@@ -295,6 +295,11 @@ export class GameRoom {
       return { success: false, error: 'Card not in hand' };
     }
 
+    // Check if player has 2 cards and hasn't called UNO before playing
+    if (player.getHandSize() === 2 && !player.calledUno) {
+      return { success: false, error: 'Must call UNO before playing your second-to-last card!' };
+    }
+
     // Validate card can be played
     if (!this.topCard || !canPlayCard(card, this.topCard, this.currentColor, this.pendingPenalty)) {
       return { success: false, error: 'Invalid card play' };
@@ -332,17 +337,8 @@ export class GameRoom {
       return { success: true, card, eliminatedPlayers };
     }
 
-    // Check if player went down to 1 card without calling UNO
-    if (player.getHandSize() === 1 && !player.calledUno) {
-      // Open UNO catch window for other players
-      this.unoCallWindow = {
-        playerId: player.id,
-        timestamp: Date.now(),
-      };
-    } else {
-      // Clear UNO call window
-      this.unoCallWindow = null;
-    }
+    // Clear UNO call window since player successfully played
+    this.unoCallWindow = null;
 
     this.updateActivity();
 
@@ -544,7 +540,7 @@ export class GameRoom {
   }
 
   /**
-   * Call UNO
+   * Call UNO - Must be called when player has 2 cards, before playing second-to-last card
    */
   callUno(playerId: string): boolean {
     const player = this.players.get(playerId);
@@ -552,12 +548,14 @@ export class GameRoom {
       return false;
     }
 
-    if (player.getHandSize() === 1) {
+    // Player must have exactly 2 cards to call UNO
+    if (player.getHandSize() === 2) {
       player.callUno();
-      // Clear UNO call window if this player was in it
-      if (this.unoCallWindow?.playerId === playerId) {
-        this.unoCallWindow = null;
-      }
+      // Open UNO call window so everyone knows this player called UNO
+      this.unoCallWindow = {
+        playerId: playerId,
+        timestamp: Date.now(),
+      };
       this.updateActivity();
       return true;
     }

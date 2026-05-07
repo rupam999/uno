@@ -17,10 +17,11 @@ export function canPlayCard(
 ): boolean {
   // If there's a pending penalty, player must either stack or draw
   if (pendingPenalty > 0) {
-    // Can only play if it's a stackable draw card with equal or higher penalty
+    // Can only play if it's a stackable draw card
     if (!isStackableCard(cardToPlay.type)) {
       return false;
     }
+
     const cardPenalty = getDrawPenalty(cardToPlay.type);
     const topCardPenalty = getDrawPenalty(topCard.type);
 
@@ -29,20 +30,41 @@ export function canPlayCard(
       return false;
     }
 
-    // Wild draw cards can always stack regardless of color
-    if (isWildCard(cardToPlay.type)) {
-      return true;
+    // Special stacking rules based on card types:
+
+    // If top card is colored draw (+2 or +4):
+    if (topCard.type === 'draw_2' || topCard.type === 'draw_4') {
+      // Can play wild draw cards (+6, +10) of ANY color
+      if (cardToPlay.type === 'wild_draw_6' || cardToPlay.type === 'wild_draw_10') {
+        return true;
+      }
+      // Can play colored draw cards (+2 or +4) if they match the current color
+      if ((cardToPlay.type === 'draw_2' || cardToPlay.type === 'draw_4') &&
+          cardToPlay.color === currentColor) {
+        return true;
+      }
+      // Can play wild_reverse_draw_4 of ANY color (it's a wild card)
+      if (cardToPlay.type === 'wild_reverse_draw_4') {
+        return true;
+      }
+      return false;
     }
 
-    // For colored draw cards (draw_2, draw_4), they can stack if:
-    // 1. Same penalty or higher (already checked above)
-    // 2. Match the current color (if there is a current color)
-    if (currentColor !== null && cardToPlay.color !== null) {
-      return cardToPlay.color === currentColor;
+    // If top card is wild draw (+6, +10, or wild_reverse_draw_4):
+    if (topCard.type === 'wild_draw_6' ||
+        topCard.type === 'wild_draw_10' ||
+        topCard.type === 'wild_reverse_draw_4') {
+      // Can play ANY wild draw card (+6, +10, wild_reverse_draw_4)
+      if (cardToPlay.type === 'wild_draw_6' ||
+          cardToPlay.type === 'wild_draw_10' ||
+          cardToPlay.type === 'wild_reverse_draw_4') {
+        return true;
+      }
+      // Cannot play colored draw cards on wild draw cards
+      return false;
     }
 
-    // If no current color (shouldn't happen), allow the stack
-    return true;
+    return false;
   }
 
   // No pending penalty - normal play rules

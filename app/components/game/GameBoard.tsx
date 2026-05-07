@@ -175,6 +175,16 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     showNotification(`${data.playerName} has been eliminated!`);
   });
 
+  // Listen for UNO called
+  useSocketEvent(SERVER_EVENTS.UNO_CALLED, (data: { playerId: string }) => {
+    const player = currentGameState.players.find((p) => p.id === data.playerId);
+    if (data.playerId === currentGameState.myPlayerId) {
+      showNotification('You called UNO! 🎉');
+    } else {
+      showNotification(`${player?.name || 'Player'} called UNO! 🎉`);
+    }
+  });
+
   // Listen for game ended
   useSocketEvent(SERVER_EVENTS.GAME_ENDED, (data: any) => {
     setWinnerData({
@@ -335,28 +345,28 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       {/* Game Container */}
       <div className="relative w-full h-full flex flex-col">
         {/* Top Bar */}
-        <div className="relative z-10 flex items-center justify-between px-4 py-3">
+        <div className="relative z-10 flex items-center justify-between px-2 md:px-4 py-2 md:py-3">
           {/* UNO Logo - Left */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 md:gap-3">
             <Image
               src="/assets/logo.png"
               alt="UNO"
-              width={60}
-              height={60}
-              className="drop-shadow-2xl"
+              width={45}
+              height={45}
+              className="drop-shadow-2xl md:w-[60px] md:h-[60px]"
             />
             {isMyTurn && (
               <>
-                <div className={`rounded-full p-2 shadow-lg ${
+                <div className={`rounded-full p-1.5 md:p-2 shadow-lg ${
                   turnTimer <= 10
                     ? 'bg-gradient-to-br from-red-500 to-orange-600 animate-pulse'
                     : 'bg-gradient-to-br from-yellow-500 to-orange-600'
                 }`}>
-                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
                   </svg>
                 </div>
-                <span className={`font-bold text-xl ${
+                <span className={`font-bold text-base md:text-xl ${
                   turnTimer <= 10 ? 'text-red-400 animate-pulse' : 'text-white'
                 }`}>
                   00:{turnTimer.toString().padStart(2, '0')}
@@ -369,13 +379,13 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
           <div></div>
 
           {/* Player Count & Menu - Right */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 md:gap-3">
             {/* UNO Call Button - Show when player has 2 cards */}
             {currentGameState.myHand.length === 2 &&
              !currentGameState.players.find(p => p.id === currentGameState.myPlayerId)?.calledUno && (
               <button
                 onClick={handleCallUno}
-                className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-black text-lg px-6 py-3 rounded-full shadow-2xl animate-pulse border-3 border-white transform hover:scale-105 transition-all"
+                className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-black text-sm md:text-lg px-4 md:px-6 py-2 md:py-3 rounded-full shadow-2xl animate-pulse border-2 md:border-3 border-white transform hover:scale-105 transition-all"
               >
                 UNO!
               </button>
@@ -384,21 +394,21 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
             {/* Catch UNO Button - Always visible */}
             <button
               onClick={() => setShowCatchUnoModal(true)}
-              className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-black text-sm px-4 py-2 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-all"
+              className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-black text-xs md:text-sm px-2 md:px-4 py-1.5 md:py-2 rounded-full shadow-lg border border-white transform hover:scale-105 transition-all"
             >
-              🚨 CATCH UNO
+              🚨 <span className="hidden sm:inline">CATCH UNO</span>
             </button>
-            <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded-full px-4 py-2 border border-white/20">
-              <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-center gap-1 md:gap-2 bg-black/40 backdrop-blur-md rounded-full px-2 md:px-4 py-1.5 md:py-2 border border-white/20">
+              <svg className="w-4 h-4 md:w-5 md:h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
               </svg>
-              <span className="text-white font-bold">{currentGameState.players.filter(p => !p.isEliminated).length}/{currentGameState.players.length}</span>
+              <span className="text-white font-bold text-sm md:text-base">{currentGameState.players.filter(p => !p.isEliminated).length}/{currentGameState.players.length}</span>
             </div>
             <button
               onClick={() => window.location.href = '/'}
-              className="bg-black/40 backdrop-blur-md hover:bg-black/60 p-2 rounded-full border border-white/20 transition"
+              className="bg-black/40 backdrop-blur-md hover:bg-black/60 p-1.5 md:p-2 rounded-full border border-white/20 transition"
             >
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
               </svg>
             </button>
@@ -473,15 +483,15 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         </div>
 
         {/* Player Hand at Bottom - Very compact */}
-        <div className="relative bg-gradient-to-t from-black/90 via-purple-900/50 to-transparent backdrop-blur-md p-1.5 md:p-3 pb-safe border-t border-purple-500/20 shadow-[0_-10px_30px_rgba(168,85,247,0.3)]">
+        <div className="relative bg-gradient-to-t from-black/90 via-purple-900/50 to-transparent backdrop-blur-md p-1 md:p-3 pb-safe border-t border-purple-500/20 shadow-[0_-10px_30px_rgba(168,85,247,0.3)]">
           {/* Current Player Avatar - Bottom Left with Card Info */}
-          <div className="absolute bottom-6 left-6 z-30 flex items-center gap-3">
+          <div className="absolute bottom-3 md:bottom-6 left-2 md:left-6 z-30 flex items-center gap-2 md:gap-3">
             {/* Avatar */}
             <div className="relative">
               <div
-                className={`w-20 h-20 md:w-24 md:h-24 rounded-full border-4 shadow-2xl overflow-hidden ${
+                className={`w-16 h-16 md:w-24 md:h-24 rounded-full border-3 md:border-4 shadow-2xl overflow-hidden ${
                   isMyTurn
-                    ? 'border-green-400 shadow-green-400/50 ring-4 ring-green-400/30 animate-pulse'
+                    ? 'border-green-400 shadow-green-400/50 ring-2 md:ring-4 ring-green-400/30 animate-pulse'
                     : 'border-white/50'
                 }`}
               >
@@ -494,15 +504,15 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                 />
               </div>
               {/* Card count badge on avatar */}
-              <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full w-10 h-10 flex items-center justify-center border-3 border-white shadow-lg">
-                <span className="text-white font-black text-base">{currentGameState.myHand.length}</span>
+              <div className="absolute -bottom-1 md:-bottom-2 -right-1 md:-right-2 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-full w-8 h-8 md:w-10 md:h-10 flex items-center justify-center border-2 md:border-3 border-white shadow-lg">
+                <span className="text-white font-black text-sm md:text-base">{currentGameState.myHand.length}</span>
               </div>
             </div>
 
             {/* Player Info Card */}
-            <div className="bg-black/80 backdrop-blur-md rounded-2xl px-4 py-3 border border-white/20 shadow-xl">
-              <div className="text-yellow-400 text-xs font-bold mb-1">You</div>
-              <div className="text-white text-xl font-black">{currentGameState.myHand.length} Cards</div>
+            <div className="bg-black/80 backdrop-blur-md rounded-xl md:rounded-2xl px-3 md:px-4 py-2 md:py-3 border border-white/20 shadow-xl">
+              <div className="text-yellow-400 text-xs font-bold mb-0.5 md:mb-1">You</div>
+              <div className="text-white text-base md:text-xl font-black">{currentGameState.myHand.length} Cards</div>
             </div>
           </div>
 
@@ -642,11 +652,11 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               🚨 Catch UNO!
             </h3>
             <p className="text-gray-400 text-sm text-center mb-4">
-              Select a player who forgot to call UNO when they had 1 card left
+              Select a player who has 2 cards but didn&apos;t call UNO before playing
             </p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {currentGameState.players
-                .filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno)
+                .filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 2 && !p.calledUno)
                 .map((player) => (
                   <button
                     key={player.id}
@@ -662,16 +672,16 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                       </div>
                       <div className="text-left">
                         <div className="font-bold">{player.name}</div>
-                        <div className="text-xs text-orange-200">{player.cardCount} card - No UNO!</div>
+                        <div className="text-xs text-orange-200">{player.cardCount} cards - No UNO!</div>
                       </div>
                     </div>
                     <div className="text-2xl">🚨</div>
                   </button>
                 ))}
-              {currentGameState.players.filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno).length === 0 && (
+              {currentGameState.players.filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 2 && !p.calledUno).length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-400">No players to catch!</p>
-                  <p className="text-gray-500 text-sm mt-2">All players with 1 card have called UNO</p>
+                  <p className="text-gray-500 text-sm mt-2">All players with 2 cards have called UNO</p>
                 </div>
               )}
             </div>
