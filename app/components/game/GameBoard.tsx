@@ -21,13 +21,11 @@ interface GameBoardProps {
 export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const { socket, gameState, setGameState } = useSocket();
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [showPlayerPicker, setShowPlayerPicker] = useState(false);
   const [pendingCardId, setPendingCardId] = useState<string | null>(null);
   const [notification, setNotification] = useState<string | null>(null);
-  const [showTurnNotification, setShowTurnNotification] = useState(false);
   const [showWinner, setShowWinner] = useState(false);
   const [winnerData, setWinnerData] = useState<{ name: string; score?: number } | null>(null);
-  const [turnTimer, setTurnTimer] = useState<number>(60);
+  const [turnTimer, setTurnTimer] = useState<number>(15);
   const [showCatchUnoModal, setShowCatchUnoModal] = useState(false);
 
   const currentGameState = gameState || initialGameState;
@@ -35,29 +33,32 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     currentGameState.players[currentGameState.currentPlayerIndex]?.id ===
     currentGameState.myPlayerId;
 
-  // Turn timeout - 60 seconds
-  useEffect(() => {
-    if (!isMyTurn) {
-      setTurnTimer(60);
-      return;
-    }
+  // Derived state - no effects needed
+  const showPlayerPicker = currentGameState.waitingForPlayerChoice && isMyTurn;
 
-    // Reset timer when it becomes your turn
-    setTurnTimer(60);
+  // Show notification
+  const showNotification = useCallback((message: string) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), 3000);
+  }, []);
 
-    const interval = setInterval(() => {
-      setTurnTimer((prev) => {
-        if (prev <= 1) {
-          // Time's up! Play a random card or draw
-          handleAutoPlay();
-          return 60;
+  // Draw a card
+  const handleDrawCard = useCallback(() => {
+    if (!socket || !isMyTurn) return;
+
+    socket.emit(
+      CLIENT_EVENTS.DRAW_CARD,
+      {
+        roomId,
+        playerId: currentGameState.myPlayerId,
+      },
+      (response: any) => {
+        if (!response.success) {
+          showNotification(response.error || 'Cannot draw card');
         }
-        return prev - 1;
-      });
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [isMyTurn, currentGameState.currentPlayerIndex]);
+      }
+    );
+  }, [socket, isMyTurn, currentGameState, roomId, showNotification]);
 
   // Auto-play when time runs out
   const handleAutoPlay = useCallback(() => {
@@ -113,27 +114,30 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       handleDrawCard();
       showNotification('Time expired - drawing card');
     }
-  }, [socket, isMyTurn, currentGameState, roomId]);
+  }, [socket, isMyTurn, currentGameState, roomId, showNotification, handleDrawCard]);
 
-  // Show player picker when waiting for player choice (7 card swap)
+  // Turn timeout - 15 seconds
   useEffect(() => {
-    if (currentGameState.waitingForPlayerChoice && isMyTurn) {
-      setShowPlayerPicker(true);
-    } else {
-      setShowPlayerPicker(false);
+    if (!isMyTurn) {
+      return;
     }
-  }, [currentGameState.waitingForPlayerChoice, isMyTurn]);
 
-  // Keep turn notification visible during player's turn
-  useEffect(() => {
-    setShowTurnNotification(isMyTurn);
-  }, [isMyTurn]);
+    // Start countdown from 15
+    let timeLeft = 15;
 
-  // Show notification
-  const showNotification = (message: string) => {
-    setNotification(message);
-    setTimeout(() => setNotification(null), 3000);
-  };
+    const interval = setInterval(() => {
+      timeLeft--;
+      setTurnTimer(timeLeft);
+
+      if (timeLeft <= 0) {
+        // Time's up! Play a random card or draw
+        handleAutoPlay();
+        clearInterval(interval);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isMyTurn, currentGameState.currentPlayerIndex, handleAutoPlay]);
 
   // Listen for game state updates
   useSocketEvent<{ gameState: ClientGameState }>(SERVER_EVENTS.GAME_STATE_SYNC, (data) => {
@@ -251,26 +255,8 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       setShowColorPicker(false);
       setPendingCardId(null);
     },
-    [socket, pendingCardId, currentGameState, roomId]
+    [socket, pendingCardId, currentGameState, roomId, showNotification]
   );
-
-  // Draw a card
-  const handleDrawCard = useCallback(() => {
-    if (!socket || !isMyTurn) return;
-
-    socket.emit(
-      CLIENT_EVENTS.DRAW_CARD,
-      {
-        roomId,
-        playerId: currentGameState.myPlayerId,
-      },
-      (response: any) => {
-        if (!response.success) {
-          showNotification(response.error || 'Cannot draw card');
-        }
-      }
-    );
-  }, [socket, isMyTurn, currentGameState, roomId]);
 
   // Call UNO
   const handleCallUno = useCallback(() => {
@@ -288,7 +274,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         }
       }
     );
-  }, [socket, currentGameState, roomId]);
+  }, [socket, currentGameState, roomId, showNotification]);
 
   // Challenge/Catch UNO
   const handleChallengeUno = useCallback((targetId: string) => {
@@ -307,7 +293,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         }
       }
     );
-  }, [socket]);
+  }, [socket, showNotification]);
 
   // Handle player selection for hand swap (7 card)
   const handlePlayerSelect = useCallback((targetId: string) => {
@@ -320,14 +306,13 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
       },
       (response: any) => {
         if (response.success) {
-          setShowPlayerPicker(false);
           showNotification('Hands swapped!');
         } else {
           showNotification(response.error || 'Failed to swap hands');
         }
       }
     );
-  }, [socket]);
+  }, [socket, showNotification]);
 
   return (
     <div className="fixed inset-0 overflow-hidden">
@@ -534,7 +519,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         type="your-turn"
         message="YOUR TURN!"
         subMessage="Make your move"
-        show={showTurnNotification}
+        show={isMyTurn}
         duration={0}
         onClose={() => {}}
       />

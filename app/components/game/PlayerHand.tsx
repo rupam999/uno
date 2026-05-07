@@ -98,44 +98,15 @@ export function PlayerHand({
 
   return (
     <div className="relative w-full h-full">
-      {/* Action Buttons - Top Right */}
-      <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
-        {/* Auto UNO Toggle */}
-        <button
-          onClick={() => setAutoUno(!autoUno)}
-          className="bg-black/60 backdrop-blur-md rounded-full px-4 py-2 border border-white/20 flex items-center gap-2"
-        >
-          <span className="text-white text-sm font-bold">Auto UNO</span>
-          <div
-            className={`w-10 h-6 rounded-full transition-colors ${
-              autoUno ? 'bg-green-500' : 'bg-gray-600'
-            }`}
-          >
-            <div
-              className={`w-4 h-4 bg-white rounded-full mt-1 transition-transform ${
-                autoUno ? 'ml-5' : 'ml-1'
-              }`}
-            ></div>
-          </div>
-        </button>
-
-        {/* UNO Button */}
-        {shouldCallUno && (
-          <button
-            onClick={onCallUno}
-            className="bg-gradient-to-r from-red-500 via-pink-500 to-red-600 hover:from-red-600 hover:via-pink-600 hover:to-red-700 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-2xl shadow-red-500/50 animate-pulse transform hover:scale-105 transition-all"
-          >
-            UNO!
-          </button>
-        )}
-
+      {/* Action Buttons - Bottom Center, fixed to viewport */}
+      <div className="fixed bottom-32 md:bottom-56 left-1/2 -translate-x-1/2 z-30 flex flex-col md:flex-row items-center gap-2">
         {/* Play Selected Button */}
         {selectedCardId && (
           <button
             onClick={handlePlaySelected}
-            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-2xl shadow-green-500/50 transform hover:scale-105 transition-all"
+            className="bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black text-sm md:text-lg px-6 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl shadow-2xl shadow-green-500/50 transform hover:scale-105 transition-all"
           >
-            ▶ PLAY
+            ▶ PLAY CARD
           </button>
         )}
 
@@ -143,7 +114,7 @@ export function PlayerHand({
         {isMyTurn && !hasPlayableCard && !selectedCardId && (
           <button
             onClick={onDrawCard}
-            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-lg px-8 py-4 rounded-2xl shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all"
+            className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-sm md:text-lg px-6 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all"
           >
             {pendingPenalty > 0 ? `↓ DRAW +${pendingPenalty}` : '↓ DRAW CARD'}
           </button>
