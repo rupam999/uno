@@ -344,20 +344,24 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               height={60}
               className="drop-shadow-2xl"
             />
-            <div className={`rounded-full p-2 shadow-lg ${
-              isMyTurn && turnTimer <= 10
-                ? 'bg-gradient-to-br from-red-500 to-orange-600 animate-pulse'
-                : 'bg-gradient-to-br from-yellow-500 to-orange-600'
-            }`}>
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <span className={`font-bold text-xl ${
-              isMyTurn && turnTimer <= 10 ? 'text-red-400 animate-pulse' : 'text-white'
-            }`}>
-              {isMyTurn ? `00:${turnTimer.toString().padStart(2, '0')}` : '01:12'}
-            </span>
+            {isMyTurn && (
+              <>
+                <div className={`rounded-full p-2 shadow-lg ${
+                  turnTimer <= 10
+                    ? 'bg-gradient-to-br from-red-500 to-orange-600 animate-pulse'
+                    : 'bg-gradient-to-br from-yellow-500 to-orange-600'
+                }`}>
+                  <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <span className={`font-bold text-xl ${
+                  turnTimer <= 10 ? 'text-red-400 animate-pulse' : 'text-white'
+                }`}>
+                  00:{turnTimer.toString().padStart(2, '0')}
+                </span>
+              </>
+            )}
           </div>
 
           {/* Center - Empty (logo is on left now) */}
@@ -475,7 +479,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                   src={getAvatarUrl(currentGameState.myPlayerId)}
                   alt="Your avatar"
                   fill
-                  className="object-cover"
+                  className="object-cover rounded-full"
                 />
               </div>
               {/* Card count badge on avatar */}
