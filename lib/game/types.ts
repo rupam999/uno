@@ -23,6 +23,16 @@ export interface Card {
   value: number | null; // for number cards (0-9)
 }
 
+// Alliance structure
+export interface Alliance {
+  id: string;
+  name: string;
+  members: string[]; // player IDs
+  createdBy: string; // player ID of creator
+  createdAt: number;
+  maxSize: number;
+}
+
 export interface Player {
   id: string;
   name: string;
@@ -33,6 +43,7 @@ export interface Player {
   isHost: boolean;
   calledUno: boolean;
   lastSeen: number; // timestamp
+  allianceId: string | null; // Add alliance tracking
 }
 
 export type RoomState = 'waiting' | 'playing' | 'finished';
@@ -67,6 +78,9 @@ export interface PublicPlayer {
   isConnected: boolean;
   isHost: boolean;
   calledUno: boolean;
+  allianceId: string | null; // Add alliance tracking
+  allianceName: string | null; // Add alliance name
+  hand?: Card[]; // Only populated for same-alliance players
 }
 
 // Client receives a view of the game with their own full hand
@@ -87,16 +101,48 @@ export interface ClientGameState {
   roundNumber: number;
   targetScore: number;
   unoCallWindow: { playerId: string; timestamp: number } | null; // Who can be caught for not calling UNO
+  alliances: Alliance[]; // Add alliances
+  myAllianceId: string | null; // Add player's alliance
+  alliancesEnabled: boolean; // Add alliance feature flag
+  maxAllianceSize: number; // Add max alliance size
 }
 
 // Socket event payload types
 export interface CreateRoomPayload {
   playerName: string;
+  enableAlliances?: boolean; // Add alliance feature flag
+  maxAllianceSize?: number; // Add max alliance size (2-5)
 }
 
 export interface JoinRoomPayload {
   roomId: string;
   playerName: string;
+}
+
+// Alliance-related payloads
+export interface CreateAlliancePayload {
+  roomId: string;
+  playerId: string;
+  allianceName: string;
+}
+
+export interface JoinAlliancePayload {
+  roomId: string;
+  playerId: string;
+  allianceId: string;
+}
+
+export interface LeaveAlliancePayload {
+  roomId: string;
+  playerId: string;
+}
+
+export interface AllianceCreatedPayload {
+  alliance: Alliance;
+}
+
+export interface AllianceUpdatedPayload {
+  alliance: Alliance;
 }
 
 export interface PlayCardPayload {

@@ -13,6 +13,9 @@ export const CLIENT_EVENTS = {
   CHOOSE_PLAYER: 'choose_player',
   RECONNECT_PLAYER: 'reconnect_player',
   HEARTBEAT: 'heartbeat',
+  CREATE_ALLIANCE: 'create_alliance', // Add alliance events
+  JOIN_ALLIANCE: 'join_alliance',
+  LEAVE_ALLIANCE: 'leave_alliance',
 } as const;
 
 // Server -> Client events
@@ -42,6 +45,9 @@ export const SERVER_EVENTS = {
   INVALID_ACTION: 'invalid_action',
   PLAYER_RECONNECTED: 'player_reconnected',
   PLAYER_DISCONNECTED: 'player_disconnected',
+  ALLIANCE_CREATED: 'alliance_created', // Add alliance events
+  ALLIANCE_UPDATED: 'alliance_updated',
+  ALLIANCE_ERROR: 'alliance_error',
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENTS)[keyof typeof CLIENT_EVENTS];

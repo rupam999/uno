@@ -55,7 +55,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
      */
     socket.on(CLIENT_EVENTS.CREATE_ROOM, (payload: CreateRoomPayload, callback) => {
       try {
-        const { playerName } = payload;
+        const { playerName, enableAlliances = false, maxAllianceSize = 2 } = payload;
 
         if (!isValidPlayerName(playerName)) {
           callback({ success: false, error: 'Invalid player name' });
@@ -65,7 +65,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
         const roomId = generateUniqueRoomCode();
         const playerId = socket.id;
 
-        const room = new GameRoom(roomId);
+        const room = new GameRoom(roomId, enableAlliances, maxAllianceSize);
         const added = room.addPlayer(playerId, playerName.trim());
 
         if (!added) {
@@ -80,7 +80,7 @@ export function setupSocketHandlers(io: SocketIOServer): void {
 
         callback({ success: true, roomId, playerId });
 
-        console.log(`Room created: ${roomId} by ${playerName}`);
+        console.log(`Room created: ${roomId} by ${playerName}${enableAlliances ? ' (alliances enabled)' : ''}`);
       } catch (error) {
         console.error('Error creating room:', error);
         callback({ success: false, error: 'Server error' });
@@ -524,6 +524,122 @@ export function setupSocketHandlers(io: SocketIOServer): void {
       } catch (error) {
         console.error('Error choosing player:', error);
         callback?.({ success: false, error: 'Server error' });
+      }
+    });
+
+    /**
+     * CREATE ALLIANCE
+     */
+    socket.on(CLIENT_EVENTS.CREATE_ALLIANCE, (payload: { roomId: string; playerId: string; allianceName: string }, callback) => {
+      try {
+        const { roomId, playerId, allianceName } = payload;
+
+        const room = rooms.get(roomId);
+        if (!room) {
+          callback({ success: false, error: 'Room not found' });
+          return;
+        }
+
+        const result = room.createAlliance(playerId, allianceName);
+
+        if (result.success && result.alliance) {
+          // Broadcast alliance created to all players in room
+          io.to(roomId).emit(SERVER_EVENTS.ALLIANCE_CREATED, {
+            alliance: result.alliance,
+          });
+
+          // Send updated game state to all players
+          for (const [pid, _] of room.players) {
+            const gameState = room.toClientGameState(pid);
+            io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
+          }
+
+          callback({ success: true, alliance: result.alliance });
+          console.log(`Alliance created: ${allianceName} in room ${roomId}`);
+        } else {
+          callback({ success: false, error: result.error });
+        }
+      } catch (error) {
+        console.error('Error creating alliance:', error);
+        callback({ success: false, error: 'Server error' });
+      }
+    });
+
+    /**
+     * JOIN ALLIANCE
+     */
+    socket.on(CLIENT_EVENTS.JOIN_ALLIANCE, (payload: { roomId: string; playerId: string; allianceId: string }, callback) => {
+      try {
+        const { roomId, playerId, allianceId } = payload;
+
+        const room = rooms.get(roomId);
+        if (!room) {
+          callback({ success: false, error: 'Room not found' });
+          return;
+        }
+
+        const result = room.joinAlliance(playerId, allianceId);
+
+        if (result.success && result.alliance) {
+          // Broadcast alliance updated
+          io.to(roomId).emit(SERVER_EVENTS.ALLIANCE_UPDATED, {
+            alliance: result.alliance,
+          });
+
+          // Send updated game state to all players
+          for (const [pid, _] of room.players) {
+            const gameState = room.toClientGameState(pid);
+            io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
+          }
+
+          callback({ success: true, alliance: result.alliance });
+          console.log(`Player ${playerId} joined alliance ${result.alliance.name} in room ${roomId}`);
+        } else {
+          callback({ success: false, error: result.error });
+        }
+      } catch (error) {
+        console.error('Error joining alliance:', error);
+        callback({ success: false, error: 'Server error' });
+      }
+    });
+
+    /**
+     * LEAVE ALLIANCE
+     */
+    socket.on(CLIENT_EVENTS.LEAVE_ALLIANCE, (payload: { roomId: string; playerId: string }, callback) => {
+      try {
+        const { roomId, playerId } = payload;
+
+        const room = rooms.get(roomId);
+        if (!room) {
+          callback({ success: false, error: 'Room not found' });
+          return;
+        }
+
+        const result = room.leaveAlliance(playerId);
+
+        if (result.success) {
+          // Broadcast alliance updated (or deletion if empty)
+          if (result.alliance) {
+            io.to(roomId).emit(SERVER_EVENTS.ALLIANCE_UPDATED, {
+              alliance: result.alliance,
+            });
+          }
+
+          // Send updated game state to all players
+          for (const [pid, _] of room.players) {
+            const gameState = room.toClientGameState(pid);
+            io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
+          }
+
+          callback({ success: true });
+          console.log(`Player ${playerId} left alliance in room ${roomId}`);
+        } else {
+          callback({ success: false, error: result.error });
+        }
+      } catch (error) {
+        console.error('Error leaving alliance:', error);
+        callback({ success: false, error: 'Server error' });
       }
     });
 

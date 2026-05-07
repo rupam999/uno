@@ -3,14 +3,16 @@
 import Image from 'next/image';
 import { PublicPlayer } from '@/lib/game/types';
 import { getAvatarUrl } from '@/lib/utils/avatars';
+import { Card } from './Card';
 
 interface OpponentHandsProps {
   players: PublicPlayer[];
   currentPlayerIndex: number;
   myPlayerId: string;
+  myAllianceId?: string | null;
 }
 
-export function OpponentHands({ players, currentPlayerIndex, myPlayerId }: OpponentHandsProps) {
+export function OpponentHands({ players, currentPlayerIndex, myPlayerId, myAllianceId }: OpponentHandsProps) {
   const opponents = players.filter((p) => p.id !== myPlayerId && !p.isEliminated);
   const currentPlayer = players[currentPlayerIndex];
 
@@ -89,22 +91,43 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId }: Oppon
                 )}
               </div>
 
-              {/* Card stack behind avatar */}
-              <div className="absolute -right-8 top-1/2 -translate-y-1/2 -z-10">
-                <div className="flex -space-x-2">
-                  {[...Array(Math.min(opponent.cardCount, 3))].map((_, i) => (
-                    <div
-                      key={i}
-                      className="w-8 h-12 md:w-10 md:h-14 bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white/20 shadow-lg transform -rotate-12"
-                      style={{ transform: `rotate(${-10 + i * 5}deg) translateX(${i * 2}px)` }}
-                    >
-                      <div className="absolute inset-0 flex items-center justify-center opacity-30">
-                        <span className="text-white text-xs font-bold">UNO</span>
+              {/* Alliance Member Cards - Show all cards in compact view */}
+              {myAllianceId && opponent.allianceId === myAllianceId && opponent.hand && opponent.hand.length > 0 && (
+                <div className="absolute -left-32 top-1/2 -translate-y-1/2 z-0">
+                  <div className="flex gap-1 flex-wrap max-w-[200px]">
+                    {opponent.hand.map((card, i) => (
+                      <div
+                        key={card.id}
+                        className="transition-transform hover:scale-125 hover:z-20"
+                        style={{
+                          transform: `rotate(${-3 + (i % 5) * 1.5}deg)`
+                        }}
+                      >
+                        <Card card={card} size="tiny" />
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Card stack behind avatar (for non-alliance members) */}
+              {(!myAllianceId || opponent.allianceId !== myAllianceId) && (
+                <div className="absolute -right-8 top-1/2 -translate-y-1/2 -z-10">
+                  <div className="flex -space-x-2">
+                    {[...Array(Math.min(opponent.cardCount, 3))].map((_, i) => (
+                      <div
+                        key={i}
+                        className="w-8 h-12 md:w-10 md:h-14 bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white/20 shadow-lg transform -rotate-12"
+                        style={{ transform: `rotate(${-10 + i * 5}deg) translateX(${i * 2}px)` }}
+                      >
+                        <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                          <span className="text-white text-xs font-bold">UNO</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Card count badge */}
               <div className="absolute -bottom-3 -right-3 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg px-3 py-1.5 border-2 border-white/50 shadow-lg min-w-[3rem] text-center">
@@ -117,7 +140,7 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId }: Oppon
               </div>
 
               {/* Player name label */}
-              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full whitespace-nowrap shadow-lg">
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full whitespace-nowrap shadow-lg z-30">
                 <span className="text-white text-sm font-bold">{opponent.name}</span>
               </div>
 

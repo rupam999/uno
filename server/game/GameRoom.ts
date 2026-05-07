@@ -1,4 +1,4 @@
-import { Card, Color, Direction, GameState, RoomState, ClientGameState } from '@/lib/game/types';
+import { Card, Color, Direction, GameState, RoomState, ClientGameState, Alliance } from '@/lib/game/types';
 import { Player } from './Player';
 import { Deck } from './Deck';
 import {
@@ -38,10 +38,15 @@ export class GameRoom {
   lastActivity: number = Date.now();
   unoCallWindow: { playerId: string; timestamp: number } | null = null; // Track who needs to call UNO
   unoCatchWindow: number = 3000; // 3 seconds to catch someone who didn't call UNO
+  alliances: Map<string, Alliance> = new Map(); // Add alliance tracking
+  alliancesEnabled: boolean = false; // Add alliance feature flag
+  maxAllianceSize: number = 2; // Add max alliance size
 
-  constructor(roomId: string) {
+  constructor(roomId: string, enableAlliances: boolean = false, maxAllianceSize: number = 2) {
     this.id = roomId;
     this.deck = new Deck();
+    this.alliancesEnabled = enableAlliances;
+    this.maxAllianceSize = Math.min(Math.max(maxAllianceSize, 2), 5); // Clamp 2-5
   }
 
   /**
@@ -104,6 +109,122 @@ export class GameRoom {
     if (newHost) {
       newHost.isHost = true;
     }
+  }
+
+  /**
+   * Create a new alliance
+   */
+  createAlliance(playerId: string, allianceName: string): { success: boolean; alliance?: Alliance; error?: string } {
+    // Validate: game must be in waiting state
+    if (this.state !== 'waiting') {
+      return { success: false, error: 'Cannot create alliance after game starts' };
+    }
+
+    // Validate: alliances must be enabled
+    if (!this.alliancesEnabled) {
+      return { success: false, error: 'Alliances not enabled for this room' };
+    }
+
+    // Validate: player exists and isn't already in an alliance
+    const player = this.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+    if (player.allianceId) {
+      return { success: false, error: 'Already in an alliance' };
+    }
+
+    // Validate: alliance name not taken
+    for (const [_, alliance] of this.alliances) {
+      if (alliance.name.toLowerCase() === allianceName.toLowerCase()) {
+        return { success: false, error: 'Alliance name already taken' };
+      }
+    }
+
+    // Create alliance
+    const allianceId = `alliance_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const alliance: Alliance = {
+      id: allianceId,
+      name: allianceName,
+      members: [playerId],
+      createdBy: playerId,
+      createdAt: Date.now(),
+      maxSize: this.maxAllianceSize,
+    };
+
+    this.alliances.set(allianceId, alliance);
+    player.setAlliance(allianceId);
+
+    return { success: true, alliance };
+  }
+
+  /**
+   * Join an existing alliance
+   */
+  joinAlliance(playerId: string, allianceId: string): { success: boolean; alliance?: Alliance; error?: string } {
+    // Validate: game must be in waiting state
+    if (this.state !== 'waiting') {
+      return { success: false, error: 'Cannot join alliance after game starts' };
+    }
+
+    // Validate: alliance exists
+    const alliance = this.alliances.get(allianceId);
+    if (!alliance) {
+      return { success: false, error: 'Alliance not found' };
+    }
+
+    // Validate: player exists and isn't already in an alliance
+    const player = this.players.get(playerId);
+    if (!player) {
+      return { success: false, error: 'Player not found' };
+    }
+    if (player.allianceId) {
+      return { success: false, error: 'Already in an alliance' };
+    }
+
+    // Validate: alliance not full
+    if (alliance.members.length >= alliance.maxSize) {
+      return { success: false, error: 'Alliance is full' };
+    }
+
+    // Join alliance
+    alliance.members.push(playerId);
+    player.setAlliance(allianceId);
+
+    return { success: true, alliance };
+  }
+
+  /**
+   * Leave an alliance
+   */
+  leaveAlliance(playerId: string): { success: boolean; alliance?: Alliance; error?: string } {
+    // Validate: game must be in waiting state
+    if (this.state !== 'waiting') {
+      return { success: false, error: 'Cannot leave alliance after game starts' };
+    }
+
+    // Validate: player exists and is in an alliance
+    const player = this.players.get(playerId);
+    if (!player || !player.allianceId) {
+      return { success: false, error: 'Not in an alliance' };
+    }
+
+    const alliance = this.alliances.get(player.allianceId);
+    if (!alliance) {
+      return { success: false, error: 'Alliance not found' };
+    }
+
+    // Remove player from alliance
+    alliance.members = alliance.members.filter(id => id !== playerId);
+    player.setAlliance(null);
+
+    // Delete alliance if empty
+    if (alliance.members.length === 0) {
+      this.alliances.delete(alliance.id);
+      return { success: true };
+    }
+
+    return { success: true, alliance };
   }
 
   /**
@@ -657,6 +778,7 @@ export class GameRoom {
   toClientGameState(playerId: string): ClientGameState {
     const player = this.players.get(playerId);
     const myHand = player ? player.hand : [];
+    const myAllianceId = player?.allianceId || null;
 
     // Get the current player from active players list
     const activePlayers = this.getActivePlayers();
@@ -668,10 +790,26 @@ export class GameRoom {
       (p) => p.id === currentActivePlayer?.id
     );
 
+    // Build players array with alliance-aware card visibility
+    const players = allPlayers.map((p) => {
+      const alliance = p.allianceId ? this.alliances.get(p.allianceId) : null;
+      const publicPlayer = p.toPublicPlayer();
+
+      // Fill in alliance name
+      publicPlayer.allianceName = alliance?.name || null;
+
+      // If this player is in my alliance (and not me), include their cards
+      if (p.id !== playerId && myAllianceId && p.allianceId === myAllianceId) {
+        publicPlayer.hand = p.hand;
+      }
+
+      return publicPlayer;
+    });
+
     return {
       roomId: this.id,
       state: this.state,
-      players: allPlayers.map((p) => p.toPublicPlayer()),
+      players,
       myHand,
       myPlayerId: playerId,
       currentPlayerIndex: currentPlayerIndexInFullArray >= 0 ? currentPlayerIndexInFullArray : 0,
@@ -685,6 +823,10 @@ export class GameRoom {
       roundNumber: this.roundNumber,
       targetScore: CONFIG.TARGET_SCORE,
       unoCallWindow: this.unoCallWindow,
+      alliances: Array.from(this.alliances.values()),
+      myAllianceId,
+      alliancesEnabled: this.alliancesEnabled,
+      maxAllianceSize: this.maxAllianceSize,
     };
   }
 }

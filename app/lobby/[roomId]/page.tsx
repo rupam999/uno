@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useSocket, useSocketEvent, useStartGame } from '@/lib/socket/SocketContext';
+import { useSocket, useSocketEvent, useStartGame, useCreateAlliance, useJoinAlliance, useLeaveAlliance } from '@/lib/socket/SocketContext';
 import { formatRoomCode } from '@/lib/utils/roomCode';
 import { PlayerJoinedPayload, PlayerLeftPayload, GameStartedPayload, ClientGameState } from '@/lib/game/types';
 import { SERVER_EVENTS } from '@/lib/socket/events';
@@ -13,12 +13,18 @@ export default function LobbyPage() {
   const router = useRouter();
   const { socket, gameState, setGameState } = useSocket();
   const { startGame, loading: startingGame } = useStartGame();
+  const { createAlliance, loading: creatingAlliance } = useCreateAlliance();
+  const { joinAlliance, loading: joiningAlliance } = useJoinAlliance();
+  const { leaveAlliance, loading: leavingAlliance } = useLeaveAlliance();
   const roomId = params.roomId as string;
 
   const [players, setPlayers] = useState<Array<{ id: string; name: string; isHost: boolean }>>([]);
   const [myPlayerId, setMyPlayerId] = useState<string>('');
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [showAllianceModal, setShowAllianceModal] = useState(false);
+  const [allianceAction, setAllianceAction] = useState<'create' | 'join'>('create');
+  const [allianceName, setAllianceName] = useState('');
 
   // Initialize players from game state
   useEffect(() => {
@@ -94,7 +100,43 @@ export default function LobbyPage() {
     router.push('/');
   };
 
+  const handleCreateAlliance = async () => {
+    if (!allianceName.trim()) {
+      setError('Please enter an alliance name');
+      return;
+    }
+
+    try {
+      await createAlliance(roomId, myPlayerId, allianceName.trim());
+      setShowAllianceModal(false);
+      setAllianceName('');
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to create alliance');
+    }
+  };
+
+  const handleJoinAlliance = async (allianceId: string) => {
+    try {
+      await joinAlliance(roomId, myPlayerId, allianceId);
+      setShowAllianceModal(false);
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to join alliance');
+    }
+  };
+
+  const handleLeaveAlliance = async () => {
+    try {
+      await leaveAlliance(roomId, myPlayerId);
+      setError('');
+    } catch (err: any) {
+      setError(err.message || 'Failed to leave alliance');
+    }
+  };
+
   const isHost = players.find((p) => p.id === myPlayerId)?.isHost || false;
+  const myAlliance = gameState?.alliances.find(a => a.id === gameState.myAllianceId);
 
   // Calculate circular positions for players
   const getCircularPosition = (index: number, total: number) => {
@@ -177,6 +219,7 @@ export default function LobbyPage() {
             {players.map((player, index) => {
               const { x, y } = getCircularPosition(index, players.length);
               const isMe = player.id === myPlayerId;
+              const playerAlliance = gameState?.players.find(p => p.id === player.id)?.allianceName;
 
               return (
                 <div
@@ -232,6 +275,13 @@ export default function LobbyPage() {
                         </span>
                       </div>
                     </div>
+
+                    {/* Alliance badge */}
+                    {playerAlliance && (
+                      <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-2 py-1 rounded-full whitespace-nowrap">
+                        {playerAlliance}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -262,6 +312,39 @@ export default function LobbyPage() {
           {error && (
             <div className="mt-6 bg-red-900/50 border border-red-600 rounded-lg p-3">
               <p className="text-red-200 text-sm text-center font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Alliance Management - Show if alliances enabled */}
+          {gameState?.alliancesEnabled && (
+            <div className="mt-8 max-w-2xl mx-auto">
+              {!myAlliance ? (
+                <button
+                  onClick={() => setShowAllianceModal(true)}
+                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold py-3 px-6 rounded-xl shadow-lg transform transition hover:scale-105"
+                >
+                  Manage Alliances
+                </button>
+              ) : (
+                <div className="bg-purple-900/50 backdrop-blur-md rounded-xl p-4 border border-purple-500/50">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-purple-200 text-xs mb-1">YOUR ALLIANCE</div>
+                      <div className="text-white font-black text-lg">{myAlliance.name}</div>
+                      <div className="text-purple-300 text-sm">
+                        {myAlliance.members.length}/{myAlliance.maxSize} members
+                      </div>
+                    </div>
+                    <button
+                      onClick={handleLeaveAlliance}
+                      disabled={leavingAlliance}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-bold transition disabled:opacity-50"
+                    >
+                      Leave
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -298,6 +381,93 @@ export default function LobbyPage() {
           )}
         </div>
       </div>
+
+      {/* Alliance Modal */}
+      {showAllianceModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 max-w-md w-full border border-white/20">
+            <h2 className="text-white text-2xl font-black mb-4">Alliances</h2>
+
+            {/* Toggle between create and join */}
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setAllianceAction('create')}
+                className={`flex-1 py-2 rounded-lg font-bold transition ${
+                  allianceAction === 'create'
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-800 text-gray-400'
+                }`}
+              >
+                Create Alliance
+              </button>
+              <button
+                onClick={() => setAllianceAction('join')}
+                className={`flex-1 py-2 rounded-lg font-bold transition ${
+                  allianceAction === 'join'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-800 text-gray-400'
+                }`}
+              >
+                Join Alliance
+              </button>
+            </div>
+
+            {allianceAction === 'create' ? (
+              <div>
+                <input
+                  type="text"
+                  value={allianceName}
+                  onChange={(e) => setAllianceName(e.target.value)}
+                  placeholder="Alliance name"
+                  maxLength={20}
+                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white mb-4"
+                />
+                <button
+                  onClick={handleCreateAlliance}
+                  disabled={creatingAlliance}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition disabled:opacity-50"
+                >
+                  {creatingAlliance ? 'Creating...' : 'Create Alliance'}
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {gameState?.alliances.length === 0 ? (
+                  <p className="text-gray-400 text-center py-4">No alliances yet</p>
+                ) : (
+                  gameState?.alliances.map((alliance) => (
+                    <button
+                      key={alliance.id}
+                      onClick={() => handleJoinAlliance(alliance.id)}
+                      disabled={alliance.members.length >= alliance.maxSize || joiningAlliance}
+                      className="w-full bg-gray-800 hover:bg-gray-700 text-white p-4 rounded-lg transition text-left disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <div className="font-bold">{alliance.name}</div>
+                          <div className="text-sm text-gray-400">
+                            {alliance.members.length}/{alliance.maxSize} members
+                          </div>
+                        </div>
+                        {alliance.members.length >= alliance.maxSize && (
+                          <span className="text-red-400 text-sm">Full</span>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={() => setShowAllianceModal(false)}
+              className="w-full mt-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

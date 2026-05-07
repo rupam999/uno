@@ -28,6 +28,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const [showWinner, setShowWinner] = useState(false);
   const [winnerData, setWinnerData] = useState<{ name: string; score?: number } | null>(null);
   const [turnTimer, setTurnTimer] = useState<number>(60);
+  const [showCatchUnoModal, setShowCatchUnoModal] = useState(false);
 
   const currentGameState = gameState || initialGameState;
   const isMyTurn =
@@ -380,16 +381,13 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               </button>
             )}
 
-            {/* Catch UNO Button - Show when another player didn't call UNO */}
-            {currentGameState.unoCallWindow &&
-             currentGameState.unoCallWindow.playerId !== currentGameState.myPlayerId && (
-              <button
-                onClick={() => handleChallengeUno(currentGameState.unoCallWindow!.playerId)}
-                className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-black text-sm px-4 py-2 rounded-full shadow-lg animate-pulse border-2 border-white"
-              >
-                🚨 CATCH!
-              </button>
-            )}
+            {/* Catch UNO Button - Always visible */}
+            <button
+              onClick={() => setShowCatchUnoModal(true)}
+              className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-black text-sm px-4 py-2 rounded-full shadow-lg border-2 border-white transform hover:scale-105 transition-all"
+            >
+              🚨 CATCH UNO
+            </button>
             <div className="flex items-center gap-2 bg-black/40 backdrop-blur-md rounded-full px-4 py-2 border border-white/20">
               <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
@@ -417,6 +415,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                 players={currentGameState.players}
                 currentPlayerIndex={currentGameState.currentPlayerIndex}
                 myPlayerId={currentGameState.myPlayerId}
+                myAllianceId={currentGameState.myAllianceId}
               />
 
               {/* Draw Pile - Leftmost side, vertically centered */}
@@ -631,6 +630,57 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                   </button>
                 ))}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Catch UNO Modal */}
+      {showCatchUnoModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 rounded-2xl p-6 border border-gray-700 shadow-2xl max-w-md w-full">
+            <h3 className="text-white font-bold text-xl mb-2 text-center">
+              🚨 Catch UNO!
+            </h3>
+            <p className="text-gray-400 text-sm text-center mb-4">
+              Select a player who forgot to call UNO when they had 1 card left
+            </p>
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {currentGameState.players
+                .filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno)
+                .map((player) => (
+                  <button
+                    key={player.id}
+                    onClick={() => {
+                      handleChallengeUno(player.id);
+                      setShowCatchUnoModal(false);
+                    }}
+                    className="w-full bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-bold py-4 px-6 rounded-xl shadow-lg transform transition hover:scale-105 active:scale-95 flex items-center justify-between"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-br from-red-500 to-orange-600 rounded-full flex items-center justify-center text-white font-black shadow-lg">
+                        {player.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="text-left">
+                        <div className="font-bold">{player.name}</div>
+                        <div className="text-xs text-orange-200">{player.cardCount} card - No UNO!</div>
+                      </div>
+                    </div>
+                    <div className="text-2xl">🚨</div>
+                  </button>
+                ))}
+              {currentGameState.players.filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno).length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-400">No players to catch!</p>
+                  <p className="text-gray-500 text-sm mt-2">All players with 1 card have called UNO</p>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowCatchUnoModal(false)}
+              className="w-full mt-4 bg-gray-800 hover:bg-gray-700 text-white py-2 rounded-lg transition"
+            >
+              Cancel
+            </button>
           </div>
         </div>
       )}

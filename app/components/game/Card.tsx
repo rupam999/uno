@@ -6,7 +6,7 @@ import { getCardImagePath } from '@/lib/utils/cardSprites';
 
 interface CardProps {
   card: CardType;
-  size?: 'small' | 'medium' | 'large';
+  size?: 'tiny' | 'small' | 'medium' | 'large';
   selected?: boolean;
   playable?: boolean;
   onClick?: () => void;
@@ -14,6 +14,7 @@ interface CardProps {
 }
 
 const SIZE_CONFIG = {
+  tiny: { width: 40, height: 60 },
   small: { width: 80, height: 120 },
   medium: { width: 120, height: 180 },
   large: { width: 160, height: 240 },
@@ -80,7 +81,7 @@ export function CardBack({
   count,
   className = '',
 }: {
-  size?: 'small' | 'medium' | 'large';
+  size?: 'tiny' | 'small' | 'medium' | 'large';
   count?: number;
   className?: string;
 }) {

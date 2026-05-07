@@ -11,11 +11,13 @@ export class Player {
   isHost: boolean = false;
   calledUno: boolean = false;
   lastSeen: number = Date.now();
+  allianceId: string | null = null; // Add alliance tracking
 
   constructor(id: string, name: string, isHost: boolean = false) {
     this.id = id;
     this.name = name;
     this.isHost = isHost;
+    this.allianceId = null;
   }
 
   /**
@@ -163,6 +165,13 @@ export class Player {
   }
 
   /**
+   * Set player's alliance
+   */
+  setAlliance(allianceId: string | null): void {
+    this.allianceId = allianceId;
+  }
+
+  /**
    * Check if player has been disconnected longer than grace period
    */
   isDisconnectedTooLong(gracePeriod: number): boolean {
@@ -185,6 +194,8 @@ export class Player {
       isConnected: this.isConnected,
       isHost: this.isHost,
       calledUno: this.calledUno,
+      allianceId: this.allianceId, // Add alliance fields
+      allianceName: null, // Will be filled by GameRoom
     };
   }
 

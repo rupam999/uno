@@ -16,6 +16,8 @@ export default function HomePage() {
   const [roomCode, setRoomCode] = useState('');
   const [error, setError] = useState('');
   const [showJoinForm, setShowJoinForm] = useState(false);
+  const [enableAlliances, setEnableAlliances] = useState(false);
+  const [maxAllianceSize, setMaxAllianceSize] = useState(2);
 
   const handleCreateRoom = async () => {
     if (!playerName.trim()) {
@@ -30,7 +32,7 @@ export default function HomePage() {
 
     try {
       setError('');
-      const response = await createRoom(playerName.trim());
+      const response = await createRoom(playerName.trim(), enableAlliances, maxAllianceSize);
 
       if (response.success && response.roomId) {
         router.push(`/lobby/${response.roomId}`);
@@ -138,6 +140,49 @@ export default function HomePage() {
               }}
             />
           </div>
+
+          {/* Alliance Settings Toggle - Only show when creating room */}
+          {!showJoinForm && (
+            <div className="mb-6 p-4 bg-gray-800/50 rounded-xl border border-gray-700/50">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-gray-200 font-medium">Enable Alliances</label>
+                <button
+                  onClick={() => setEnableAlliances(!enableAlliances)}
+                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                    enableAlliances ? 'bg-green-500' : 'bg-gray-600'
+                  }`}
+                >
+                  <div
+                    className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                      enableAlliances ? 'transform translate-x-6' : ''
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {enableAlliances && (
+                <div>
+                  <label className="text-gray-300 text-sm mb-2 block">
+                    Max Players per Alliance: {maxAllianceSize}
+                  </label>
+                  <input
+                    type="range"
+                    min="2"
+                    max="5"
+                    value={maxAllianceSize}
+                    onChange={(e) => setMaxAllianceSize(Number(e.target.value))}
+                    className="w-full accent-purple-500"
+                  />
+                  <div className="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>2</span>
+                    <span>3</span>
+                    <span>4</span>
+                    <span>5</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 bg-red-500/20 border border-red-500/50 rounded-xl p-3 backdrop-blur-sm">

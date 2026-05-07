@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
+import { CLIENT_EVENTS } from '@/lib/socket/events';
 import type {
   ClientGameState,
   CreateRoomResponse,
@@ -108,7 +109,7 @@ export function useCreateRoom() {
   const [error, setError] = useState<string | null>(null);
 
   const createRoom = useCallback(
-    (playerName: string): Promise<CreateRoomResponse> => {
+    (playerName: string, enableAlliances: boolean = false, maxAllianceSize: number = 2): Promise<CreateRoomResponse> => {
       return new Promise((resolve, reject) => {
         if (!socket) {
           reject(new Error('Socket not connected'));
@@ -118,7 +119,7 @@ export function useCreateRoom() {
         setLoading(true);
         setError(null);
 
-        socket.emit('create_room', { playerName }, (response: CreateRoomResponse) => {
+        socket.emit('create_room', { playerName, enableAlliances, maxAllianceSize }, (response: CreateRoomResponse) => {
           setLoading(false);
 
           if (response.success) {
@@ -212,4 +213,112 @@ export function useStartGame() {
   );
 
   return { startGame, loading, error };
+}
+
+/**
+ * Hook for creating an alliance
+ */
+export function useCreateAlliance() {
+  const { socket } = useSocket();
+  const [loading, setLoading] = useState(false);
+
+  const createAlliance = useCallback(
+    (roomId: string, playerId: string, allianceName: string): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        if (!socket) {
+          reject(new Error('Not connected'));
+          return;
+        }
+
+        setLoading(true);
+        socket.emit(
+          CLIENT_EVENTS.CREATE_ALLIANCE,
+          { roomId, playerId, allianceName },
+          (response: any) => {
+            setLoading(false);
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error));
+            }
+          }
+        );
+      });
+    },
+    [socket]
+  );
+
+  return { createAlliance, loading };
+}
+
+/**
+ * Hook for joining an alliance
+ */
+export function useJoinAlliance() {
+  const { socket } = useSocket();
+  const [loading, setLoading] = useState(false);
+
+  const joinAlliance = useCallback(
+    (roomId: string, playerId: string, allianceId: string): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        if (!socket) {
+          reject(new Error('Not connected'));
+          return;
+        }
+
+        setLoading(true);
+        socket.emit(
+          CLIENT_EVENTS.JOIN_ALLIANCE,
+          { roomId, playerId, allianceId },
+          (response: any) => {
+            setLoading(false);
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error));
+            }
+          }
+        );
+      });
+    },
+    [socket]
+  );
+
+  return { joinAlliance, loading };
+}
+
+/**
+ * Hook for leaving an alliance
+ */
+export function useLeaveAlliance() {
+  const { socket } = useSocket();
+  const [loading, setLoading] = useState(false);
+
+  const leaveAlliance = useCallback(
+    (roomId: string, playerId: string): Promise<any> => {
+      return new Promise((resolve, reject) => {
+        if (!socket) {
+          reject(new Error('Not connected'));
+          return;
+        }
+
+        setLoading(true);
+        socket.emit(
+          CLIENT_EVENTS.LEAVE_ALLIANCE,
+          { roomId, playerId },
+          (response: any) => {
+            setLoading(false);
+            if (response.success) {
+              resolve(response);
+            } else {
+              reject(new Error(response.error));
+            }
+          }
+        );
+      });
+    },
+    [socket]
+  );
+
+  return { leaveAlliance, loading };
 }
