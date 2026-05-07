@@ -651,6 +651,38 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     });
 
     /**
+     * SEND CHAT MESSAGE
+     */
+    socket.on(CLIENT_EVENTS.SEND_CHAT_MESSAGE, (payload: any) => {
+      try {
+        const { roomId, playerId, playerName, message } = payload;
+
+        if (!roomId || !playerId || !playerName || !message) {
+          return;
+        }
+
+        // Validate message length
+        if (message.length > 200) {
+          return;
+        }
+
+        // Create chat message object
+        const chatMessage = {
+          id: `${playerId}-${Date.now()}`,
+          playerId,
+          playerName,
+          message: message.trim(),
+          timestamp: Date.now(),
+        };
+
+        // Broadcast to all players in the room including sender
+        io.to(roomId).emit(SERVER_EVENTS.CHAT_MESSAGE, chatMessage);
+      } catch (error) {
+        console.error('Error handling chat message:', error);
+      }
+    });
+
+    /**
      * DISCONNECT
      */
     socket.on('disconnect', () => {

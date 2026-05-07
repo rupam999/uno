@@ -10,6 +10,7 @@ import { PlayArea } from './PlayArea';
 import { OpponentHands } from './OpponentHands';
 import { GameNotification } from './GameNotification';
 import { WinnerCelebration } from './WinnerCelebration';
+import { ChatPanel } from './ChatPanel';
 import { requiresColorSelection, canPlayCard } from '@/server/game/validators';
 import { getAvatarUrl } from '@/lib/utils/avatars';
 
@@ -27,6 +28,8 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const [winnerData, setWinnerData] = useState<{ name: string; score?: number } | null>(null);
   const [turnTimer, setTurnTimer] = useState<number>(15);
   const [showCatchUnoModal, setShowCatchUnoModal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [unreadMessages, setUnreadMessages] = useState(0);
 
   const currentGameState = gameState || initialGameState;
   const isMyTurn =
@@ -35,6 +38,17 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
 
   // Derived state - no effects needed
   const showPlayerPicker = currentGameState.waitingForPlayerChoice && isMyTurn;
+
+  // Get current player name
+  const myPlayerName = currentGameState.players.find(p => p.id === currentGameState.myPlayerId)?.name || 'You';
+
+  // Listen for chat messages to update unread count
+  useSocketEvent(SERVER_EVENTS.CHAT_MESSAGE, (data: { playerId: string }) => {
+    // Only increment unread if chat is closed and message is not from current user
+    if (!showChat && data.playerId !== currentGameState.myPlayerId) {
+      setUnreadMessages(prev => prev + 1);
+    }
+  });
 
   // Show notification
   const showNotification = useCallback((message: string) => {
@@ -389,6 +403,28 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               </svg>
               <span className="text-white font-bold text-sm md:text-base">{currentGameState.players.filter(p => !p.isEliminated).length}/{currentGameState.players.length}</span>
             </div>
+
+            {/* Chat Button */}
+            <button
+              onClick={() => {
+                setShowChat(true);
+                setUnreadMessages(0); // Reset unread count when opening chat
+              }}
+              className="bg-black/40 backdrop-blur-md hover:bg-black/60 p-1.5 md:p-2 rounded-full border border-white/20 transition relative"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+
+              {/* Unread Badge */}
+              {unreadMessages > 0 && (
+                <div className="absolute -top-1 -right-1 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-black rounded-full min-w-[18px] h-[18px] md:min-w-[20px] md:h-[20px] flex items-center justify-center border-2 border-gray-900 animate-pulse">
+                  {unreadMessages > 9 ? '9+' : unreadMessages}
+                </div>
+              )}
+            </button>
+
+            {/* Menu Button */}
             <button
               onClick={() => window.location.href = '/'}
               className="bg-black/40 backdrop-blur-md hover:bg-black/60 p-1.5 md:p-2 rounded-full border border-white/20 transition"
@@ -679,6 +715,15 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
           </div>
         </div>
       )}
+
+      {/* Chat Panel */}
+      <ChatPanel
+        isOpen={showChat}
+        onClose={() => setShowChat(false)}
+        roomId={roomId}
+        myPlayerId={currentGameState.myPlayerId}
+        myPlayerName={myPlayerName}
+      />
     </div>
   );
 }

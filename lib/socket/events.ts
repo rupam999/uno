@@ -16,6 +16,7 @@ export const CLIENT_EVENTS = {
   CREATE_ALLIANCE: 'create_alliance', // Add alliance events
   JOIN_ALLIANCE: 'join_alliance',
   LEAVE_ALLIANCE: 'leave_alliance',
+  SEND_CHAT_MESSAGE: 'send_chat_message', // Chat event
 } as const;
 
 // Server -> Client events
@@ -48,6 +49,7 @@ export const SERVER_EVENTS = {
   ALLIANCE_CREATED: 'alliance_created', // Add alliance events
   ALLIANCE_UPDATED: 'alliance_updated',
   ALLIANCE_ERROR: 'alliance_error',
+  CHAT_MESSAGE: 'chat_message', // Chat event
 } as const;
 
 export type ClientEventName = (typeof CLIENT_EVENTS)[keyof typeof CLIENT_EVENTS];
