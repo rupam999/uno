@@ -11,6 +11,7 @@ import { OpponentHands } from './OpponentHands';
 import { GameNotification } from './GameNotification';
 import { WinnerCelebration } from './WinnerCelebration';
 import { ChatPanel } from './ChatPanel';
+import { RulesModal } from './RulesModal';
 import { requiresColorSelection, canPlayCard } from '@/server/game/validators';
 import { getAvatarUrl } from '@/lib/utils/avatars';
 
@@ -30,6 +31,7 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const [showCatchUnoModal, setShowCatchUnoModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [showRules, setShowRules] = useState(false);
 
   const currentGameState = gameState || initialGameState;
   const isMyTurn =
@@ -424,6 +426,16 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               )}
             </button>
 
+            {/* Info/Rules Button */}
+            <button
+              onClick={() => setShowRules(true)}
+              className="bg-black/40 backdrop-blur-md hover:bg-black/60 p-1.5 md:p-2 rounded-full border border-white/20 transition"
+            >
+              <svg className="w-5 h-5 md:w-6 md:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </button>
+
             {/* Menu Button */}
             <button
               onClick={() => window.location.href = '/'}
@@ -723,6 +735,12 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
         roomId={roomId}
         myPlayerId={currentGameState.myPlayerId}
         myPlayerName={myPlayerName}
+      />
+
+      {/* Rules Modal */}
+      <RulesModal
+        isOpen={showRules}
+        onClose={() => setShowRules(false)}
       />
     </div>
   );
