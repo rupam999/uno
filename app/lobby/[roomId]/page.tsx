@@ -36,7 +36,6 @@ export default function LobbyPage() {
 
   // Listen for game state sync (when players join/leave)
   useSocketEvent<{ gameState: ClientGameState }>(SERVER_EVENTS.GAME_STATE_SYNC, (data) => {
-    console.log('Game state synced:', data);
     setGameState(data.gameState);
     setPlayers(
       data.gameState.players.map((p) => ({
@@ -49,10 +48,7 @@ export default function LobbyPage() {
 
   // Listen for new players joining
   useSocketEvent<PlayerJoinedPayload>(SERVER_EVENTS.PLAYER_JOINED, (data) => {
-    console.log('Player joined:', data);
-    // Refresh by fetching updated game state - we'll add players manually for now
     setPlayers((prev) => {
-      // Check if player already exists
       if (prev.some((p) => p.id === data.playerId)) {
         return prev;
       }
@@ -62,13 +58,11 @@ export default function LobbyPage() {
 
   // Listen for players leaving
   useSocketEvent<PlayerLeftPayload>(SERVER_EVENTS.PLAYER_LEFT, (data) => {
-    console.log('Player left:', data);
     setPlayers((prev) => prev.filter((p) => p.id !== data.playerId));
   });
 
   // Listen for game starting
   useSocketEvent<GameStartedPayload>(SERVER_EVENTS.GAME_STARTED, (data) => {
-    console.log('Game started:', data);
     setGameState(data.gameState);
     router.push(`/game/${roomId}`);
   });
@@ -82,7 +76,6 @@ export default function LobbyPage() {
     try {
       setError('');
       await startGame(roomId, myPlayerId);
-      // Navigation will happen automatically when GAME_STARTED event is received
     } catch (err: any) {
       setError(err.message || 'Failed to start game');
     }
@@ -103,133 +96,206 @@ export default function LobbyPage() {
 
   const isHost = players.find((p) => p.id === myPlayerId)?.isHost || false;
 
+  // Calculate circular positions for players
+  const getCircularPosition = (index: number, total: number) => {
+    const angleStep = (2 * Math.PI) / Math.max(total, 8); // Evenly distribute or use 8 slots
+    const angle = angleStep * index - Math.PI / 2; // Start from top
+    const radius = 35; // Percentage from center
+
+    const x = 50 + radius * Math.cos(angle);
+    const y = 50 + radius * Math.sin(angle);
+
+    return { x, y };
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950">
-      <div className="w-full max-w-2xl">
-        {/* Header */}
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Space Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/space-background.jpeg)',
+        }}
+      >
+        {/* Dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-black/20"></div>
+      </div>
+
+      <div className="relative w-full max-w-5xl">
+        {/* Header with Logo */}
         <div className="text-center mb-8">
           <div className="flex justify-center mb-4">
             <Image
               src="/assets/logo.png"
               alt="UNO"
-              width={120}
-              height={120}
-              className="drop-shadow-2xl"
+              width={100}
+              height={100}
+              className="drop-shadow-2xl animate-pulse-slow"
             />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-2 drop-shadow-2xl">
+          <h1 className="text-4xl md:text-5xl font-black text-white mb-2 drop-shadow-2xl">
             Game Lobby
           </h1>
-          <p className="text-gray-300">Waiting for players to join...</p>
+          <p className="text-gray-300 text-lg">Waiting for players to join...</p>
         </div>
 
-        {/* Room Code Card */}
-        <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-gray-700 mb-6">
-          <div className="text-center">
-            <p className="text-gray-400 text-sm mb-2 font-medium">Room Code</p>
-            <div className="flex items-center justify-center gap-3">
-              <div className="text-4xl font-bold text-white font-mono tracking-widest bg-gray-800 px-6 py-3 rounded-lg border border-gray-600">
-                {formatRoomCode(roomId)}
-              </div>
-              <button
-                onClick={handleCopyCode}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg transition font-medium"
-              >
-                {copied ? '✓ Copied' : 'Copy'}
-              </button>
-            </div>
-            <p className="text-gray-400 text-xs mt-2">
-              Share this code with friends to invite them
-            </p>
-          </div>
-        </div>
-
-        {/* Players Card */}
-        <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-gray-700 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-white">
-              Players ({players.length}/10)
-            </h2>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span className="text-green-400 text-sm font-medium">Waiting</span>
-            </div>
-          </div>
-
-          {/* Players List */}
-          <div className="space-y-2">
-            {players.map((player) => (
-              <div
-                key={player.id}
-                className="bg-gray-800 rounded-lg p-4 flex items-center justify-between border border-gray-700"
-              >
+        {/* Main Lobby Area */}
+        <div className="relative">
+          {/* Room Code Card - Top */}
+          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 z-20">
+            <div className="bg-black/60 backdrop-blur-md rounded-2xl px-8 py-4 border border-white/20 shadow-2xl">
+              <div className="text-center">
+                <p className="text-gray-400 text-sm mb-2 font-medium">ROOM CODE</p>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold shadow-lg">
-                    {player.name.charAt(0).toUpperCase()}
+                  <div className="text-4xl font-black text-white font-mono tracking-widest">
+                    {formatRoomCode(roomId)}
                   </div>
-                  <div>
-                    <p className="text-white font-medium">
-                      {player.name}
-                      {player.id === myPlayerId && (
-                        <span className="text-blue-400 text-sm ml-2">(You)</span>
+                  <button
+                    onClick={handleCopyCode}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-bold shadow-lg"
+                  >
+                    {copied ? '✓' : '📋'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Circular Player Area */}
+          <div className="relative w-full aspect-square max-w-2xl mx-auto">
+            {/* Center Circle */}
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-3/4 h-3/4 rounded-full bg-gradient-to-br from-purple-900/40 to-pink-900/40 backdrop-blur-sm border-4 border-white/10 shadow-2xl flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-6xl font-black text-white mb-2">{players.length}/10</div>
+                  <div className="text-xl text-gray-300 font-bold">PLAYERS</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Players in Circle */}
+            {players.map((player, index) => {
+              const { x, y } = getCircularPosition(index, players.length);
+              const isMe = player.id === myPlayerId;
+
+              return (
+                <div
+                  key={player.id}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2 z-10"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                  }}
+                >
+                  <div className="relative">
+                    {/* Glow for current user */}
+                    {isMe && (
+                      <div className="absolute inset-0 bg-blue-400 rounded-full blur-xl opacity-60 animate-pulse scale-150"></div>
+                    )}
+
+                    {/* Avatar */}
+                    <div
+                      className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full border-4 shadow-2xl ${
+                        isMe ? 'border-blue-400 scale-110' : 'border-white/50'
+                      }`}
+                      style={{
+                        background: isMe
+                          ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)'
+                          : 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+                      }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-white font-black text-2xl md:text-3xl">
+                          {player.name.charAt(0).toUpperCase()}
+                        </span>
+                      </div>
+
+                      {/* Host crown */}
+                      {player.isHost && (
+                        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 text-3xl">
+                          👑
+                        </div>
                       )}
-                    </p>
+
+                      {/* Ready indicator */}
+                      <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs font-black px-3 py-1 rounded-full shadow-lg">
+                        READY
+                      </div>
+                    </div>
+
+                    {/* Player name */}
+                    <div className="absolute -bottom-10 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                      <div className="bg-black/60 backdrop-blur-sm px-3 py-1 rounded-full">
+                        <span className="text-white text-sm font-bold">
+                          {player.name}
+                          {isMe && <span className="text-blue-400 ml-1">(You)</span>}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                {player.isHost && (
-                  <span className="bg-yellow-900/50 text-yellow-300 text-xs px-3 py-1 rounded-full border border-yellow-600 font-medium">
-                    Host
-                  </span>
-                )}
-              </div>
-            ))}
+              );
+            })}
+
+            {/* Empty slots */}
+            {Array.from({ length: Math.max(0, 8 - players.length) }).map((_, index) => {
+              const { x, y } = getCircularPosition(players.length + index, 8);
+
+              return (
+                <div
+                  key={`empty-${index}`}
+                  className="absolute transform -translate-x-1/2 -translate-y-1/2"
+                  style={{
+                    left: `${x}%`,
+                    top: `${y}%`,
+                  }}
+                >
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-dashed border-white/20 bg-white/5 flex items-center justify-center">
+                    <span className="text-white/30 text-3xl">+</span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
+          {/* Error Message */}
+          {error && (
+            <div className="mt-6 bg-red-900/50 border border-red-600 rounded-lg p-3">
+              <p className="text-red-200 text-sm text-center font-medium">{error}</p>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex gap-4 mt-12 max-w-2xl mx-auto">
+            <button
+              onClick={handleLeaveRoom}
+              className="flex-1 bg-black/60 backdrop-blur-md hover:bg-black/80 text-white font-bold py-4 px-6 rounded-2xl border border-white/20 transition shadow-xl"
+            >
+              Leave Room
+            </button>
+            {isHost ? (
+              <button
+                onClick={handleStartGame}
+                disabled={startingGame || players.length < 2}
+                className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-black py-4 px-6 rounded-2xl shadow-2xl shadow-green-500/50 transform hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:shadow-none"
+              >
+                {startingGame ? 'STARTING...' : 'START GAME'}
+              </button>
+            ) : (
+              <div className="flex-1 bg-black/40 text-gray-400 font-bold py-4 px-6 rounded-2xl text-center border border-white/10">
+                Waiting for host...
+              </div>
+            )}
+          </div>
+
+          {/* Info text */}
           {players.length < 2 && (
-            <div className="mt-4 bg-blue-900/40 border border-blue-600 rounded-lg p-3">
-              <p className="text-blue-200 text-sm text-center font-medium">
-                Waiting for at least 2 players to start the game
+            <div className="mt-6 text-center">
+              <p className="text-gray-400 text-sm">
+                Need at least 2 players to start • Share the room code to invite friends
               </p>
             </div>
           )}
-        </div>
-
-        {/* Error Message */}
-        {error && (
-          <div className="mb-4 bg-red-900/50 border border-red-600 rounded-lg p-3">
-            <p className="text-red-200 text-sm text-center font-medium">{error}</p>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex gap-3">
-          <button
-            onClick={handleLeaveRoom}
-            className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium py-4 px-6 rounded-lg border border-gray-600 transition"
-          >
-            Leave Room
-          </button>
-          {isHost && (
-            <button
-              onClick={handleStartGame}
-              disabled={startingGame || players.length < 2}
-              className="flex-1 bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
-            >
-              {startingGame ? 'Starting...' : 'Start Game'}
-            </button>
-          )}
-          {!isHost && (
-            <div className="flex-1 bg-gray-800/50 text-gray-400 font-medium py-4 px-6 rounded-lg text-center border border-gray-700">
-              Waiting for host to start...
-            </div>
-          )}
-        </div>
-
-        {/* Game Info */}
-        <div className="mt-6 text-center">
-          <p className="text-gray-500 text-sm">
-            UNO by Alliance • 2-10 players • Draw stacking enabled
-          </p>
         </div>
       </div>
     </div>

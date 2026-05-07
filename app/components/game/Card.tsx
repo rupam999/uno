@@ -14,9 +14,9 @@ interface CardProps {
 }
 
 const SIZE_CONFIG = {
-  small: { width: 60, height: 90 },
-  medium: { width: 100, height: 150 },
-  large: { width: 140, height: 210 },
+  small: { width: 80, height: 120 },
+  medium: { width: 120, height: 180 },
+  large: { width: 160, height: 240 },
 };
 
 export function Card({
@@ -35,7 +35,7 @@ export function Card({
       className={`
         relative rounded-xl overflow-hidden transition-all duration-300
         ${selected ? 'ring-4 ring-blue-400 -translate-y-4 shadow-2xl shadow-blue-500/50 scale-105' : 'shadow-xl'}
-        ${playable ? 'hover:scale-110 hover:-translate-y-3 cursor-pointer ring-2 ring-green-400/50' : 'opacity-70'}
+        ${playable ? 'hover:scale-110 hover:-translate-y-3 cursor-pointer ring-2 ring-green-400/50' : ''}
         ${!playable && !onClick ? 'cursor-default' : ''}
         ${className}
       `}

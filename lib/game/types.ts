@@ -86,6 +86,7 @@ export interface ClientGameState {
   waitingForPlayerChoice: boolean;
   roundNumber: number;
   targetScore: number;
+  unoCallWindow: { playerId: string; timestamp: number } | null; // Who can be caught for not calling UNO
 }
 
 // Socket event payload types

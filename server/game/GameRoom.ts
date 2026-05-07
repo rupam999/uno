@@ -36,6 +36,8 @@ export class GameRoom {
   createdAt: number = Date.now();
   startedAt: number | null = null;
   lastActivity: number = Date.now();
+  unoCallWindow: { playerId: string; timestamp: number } | null = null; // Track who needs to call UNO
+  unoCatchWindow: number = 3000; // 3 seconds to catch someone who didn't call UNO
 
   constructor(roomId: string) {
     this.id = roomId;
@@ -202,9 +204,23 @@ export class GameRoom {
     // Apply card effects and get eliminated players
     const eliminatedPlayers = this.applyCardEffects(card, player, chosenColor);
 
-    // Check if player won the round
-    if (player.getHandSize() === 0 && player.calledUno) {
+    // Check if player finished all cards - they win!
+    if (player.getHandSize() === 0) {
       this.endRound(player);
+      this.updateActivity();
+      return { success: true, card, eliminatedPlayers };
+    }
+
+    // Check if player went down to 1 card without calling UNO
+    if (player.getHandSize() === 1 && !player.calledUno) {
+      // Open UNO catch window for other players
+      this.unoCallWindow = {
+        playerId: player.id,
+        timestamp: Date.now(),
+      };
+    } else {
+      // Clear UNO call window
+      this.unoCallWindow = null;
     }
 
     this.updateActivity();
@@ -417,11 +433,58 @@ export class GameRoom {
 
     if (player.getHandSize() === 1) {
       player.callUno();
+      // Clear UNO call window if this player was in it
+      if (this.unoCallWindow?.playerId === playerId) {
+        this.unoCallWindow = null;
+      }
       this.updateActivity();
       return true;
     }
 
     return false;
+  }
+
+  /**
+   * Challenge/Catch a player who didn't call UNO
+   */
+  challengeUno(challengerId: string, targetId: string): {
+    success: boolean;
+    error?: string;
+    penaltyApplied?: boolean;
+  } {
+    const challenger = this.players.get(challengerId);
+    const target = this.players.get(targetId);
+
+    if (!challenger || !target) {
+      return { success: false, error: 'Player not found' };
+    }
+
+    // Check if there's an active UNO call window for the target
+    if (!this.unoCallWindow || this.unoCallWindow.playerId !== targetId) {
+      return { success: false, error: 'No active UNO challenge window for this player' };
+    }
+
+    // Check if window has expired
+    if (Date.now() - this.unoCallWindow.timestamp > this.unoCatchWindow) {
+      this.unoCallWindow = null;
+      return { success: false, error: 'Challenge window has expired' };
+    }
+
+    // Check if target actually didn't call UNO
+    if (target.calledUno) {
+      return { success: false, error: 'Player already called UNO' };
+    }
+
+    // Apply penalty: target draws 2 cards
+    const penaltyCards = this.deck.drawMultiple(2);
+    target.addCards(penaltyCards);
+
+    // Clear the UNO call window
+    this.unoCallWindow = null;
+
+    this.updateActivity();
+
+    return { success: true, penaltyApplied: true };
   }
 
   /**
@@ -489,12 +552,8 @@ export class GameRoom {
 
     winner.addScore(points);
 
-    // Check if winner reached target score
-    if (winner.score >= CONFIG.TARGET_SCORE) {
-      this.endGame(winner);
-    } else {
-      this.startNextRound();
-    }
+    // End the game immediately when someone wins a round
+    this.endGame(winner);
   }
 
   /**
@@ -625,6 +684,7 @@ export class GameRoom {
       waitingForPlayerChoice: this.waitingForPlayerChoice,
       roundNumber: this.roundNumber,
       targetScore: CONFIG.TARGET_SCORE,
+      unoCallWindow: this.unoCallWindow,
     };
   }
 }

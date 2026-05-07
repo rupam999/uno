@@ -1,7 +1,8 @@
 'use client';
 
+import Image from 'next/image';
 import { PublicPlayer } from '@/lib/game/types';
-import { CardBack } from './Card';
+import { getAvatarUrl } from '@/lib/utils/avatars';
 
 interface OpponentHandsProps {
   players: PublicPlayer[];
@@ -17,97 +18,119 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId }: Oppon
     return null;
   }
 
-  // Position players around the table
-  const getPlayerPosition = (index: number, total: number) => {
-    if (total === 1) return 'top-center';
-    if (total === 2) return index === 0 ? 'top-left' : 'top-right';
-    if (total === 3) return index === 0 ? 'top-left' : index === 1 ? 'top-center' : 'top-right';
+  // Calculate circular positions around the play area
+  const getCircularPosition = (index: number, total: number) => {
+    // Distribute opponents in a circle, leaving bottom area for player
+    const totalSlots = total + 1; // +1 to account for player at bottom
+    const angleStep = (2 * Math.PI) / totalSlots;
 
-    // For 4+ players, spread them around
-    const positions = ['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left'];
-    return positions[index] || 'top-center';
+    // Start from top-left and go around, skipping the bottom position
+    const startAngle = -Math.PI * 0.75; // Start at top-left
+    const angle = startAngle + angleStep * index;
+
+    // Position on edges of screen
+    const radiusX = 45; // Horizontal radius percentage
+    const radiusY = 42; // Vertical radius percentage
+
+    const x = 50 + radiusX * Math.cos(angle);
+    const y = 50 + radiusY * Math.sin(angle);
+
+    return { x, y };
   };
 
   return (
     <>
       {opponents.map((opponent, index) => {
         const isCurrentTurn = opponent.id === currentPlayer?.id;
-        const position = getPlayerPosition(index, opponents.length);
+        const { x, y } = getCircularPosition(index, opponents.length);
 
         return (
           <div
             key={opponent.id}
-            className={`absolute ${getPositionStyles(position)} transform -translate-x-1/2`}
+            className="absolute transform -translate-x-1/2 -translate-y-1/2 z-20"
+            style={{
+              left: `${x}%`,
+              top: `${y}%`,
+            }}
           >
-            <div
-              className={`
-                bg-gradient-to-br from-gray-900/95 to-gray-800/95 backdrop-blur-md rounded-xl md:rounded-2xl p-2.5 md:p-3 border-2 transition-all duration-300
-                ${isCurrentTurn ? 'border-green-400 shadow-xl shadow-green-400/50 scale-105 ring-2 ring-green-400/30' : 'border-purple-500/30'}
-                ${!opponent.isConnected ? 'opacity-50' : ''}
-                min-w-[100px] md:min-w-[140px]
-              `}
-            >
-              {/* Player Info */}
-              <div className="flex items-center gap-1.5 md:gap-2 mb-1.5 md:mb-2">
-                <div className="w-7 h-7 md:w-9 md:h-9 bg-gradient-to-br from-purple-500 via-pink-500 to-red-500 rounded-full flex items-center justify-center text-white font-black shadow-lg text-xs md:text-sm ring-2 ring-purple-400/50">
-                  {opponent.name.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-white font-bold text-xs md:text-sm truncate">{opponent.name}</p>
-                    {isCurrentTurn && (
-                      <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-green-400 rounded-full animate-pulse shadow-lg shadow-green-400/50"></div>
-                    )}
-                  </div>
-                  {isCurrentTurn ? (
-                    <p className="text-green-400 text-[10px] md:text-xs font-black animate-pulse">Playing now...</p>
-                  ) : (
-                    <p className="text-purple-300 text-[10px] md:text-xs font-semibold">{opponent.cardCount} cards</p>
-                  )}
-                </div>
-              </div>
+            {/* Player Avatar with Card Count */}
+            <div className="relative">
+              {/* Glow effect when it's their turn */}
+              {isCurrentTurn && (
+                <div className="absolute inset-0 bg-green-400 rounded-full blur-xl opacity-60 animate-pulse scale-150"></div>
+              )}
 
-              {/* Card Display */}
-              <div className="flex justify-center mb-1.5 md:mb-2">
-                <div className="relative scale-90 md:scale-100 transform transition-transform hover:scale-95">
-                  <CardBack size="small" count={opponent.cardCount} />
+              {/* Avatar Circle */}
+              <div
+                className={`relative w-20 h-20 md:w-24 md:h-24 rounded-full border-4 transition-all duration-300 shadow-xl overflow-hidden ${
+                  isCurrentTurn
+                    ? 'border-green-400 shadow-green-400/50 scale-110'
+                    : 'border-white/40'
+                }`}
+              >
+                {/* Avatar from individual image */}
+                <Image
+                  src={getAvatarUrl(opponent.id)}
+                  alt={opponent.name}
+                  fill
+                  className="object-cover"
+                />
 
-                  {opponent.calledUno && opponent.cardCount === 1 && (
-                    <div className="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-black px-2.5 py-1 rounded-full animate-bounce shadow-xl ring-2 ring-red-400">
-                      UNO!
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Status Badges */}
-              <div className="flex gap-1 justify-center flex-wrap">
+                {/* Connection status indicator */}
                 {!opponent.isConnected && (
-                  <span className="text-[9px] md:text-xs bg-yellow-500/20 text-yellow-300 px-2 py-0.5 rounded-full border border-yellow-400/40 font-bold">
-                    Away
-                  </span>
+                  <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full border-2 border-white"></div>
                 )}
-                {opponent.isHost && (
-                  <span className="text-[9px] md:text-xs bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-full border border-blue-400/40 font-bold">
-                    Host
-                  </span>
+
+                {/* Turn indicator */}
+                {isCurrentTurn && (
+                  <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-green-400 text-xs font-black px-2 py-0.5 rounded-full text-white shadow-lg whitespace-nowrap">
+                    PLAYING
+                  </div>
                 )}
               </div>
+
+              {/* Card stack behind avatar */}
+              <div className="absolute -right-8 top-1/2 -translate-y-1/2 -z-10">
+                <div className="flex -space-x-2">
+                  {[...Array(Math.min(opponent.cardCount, 3))].map((_, i) => (
+                    <div
+                      key={i}
+                      className="w-8 h-12 md:w-10 md:h-14 bg-gradient-to-br from-blue-600 to-blue-800 rounded border-2 border-white/20 shadow-lg transform -rotate-12"
+                      style={{ transform: `rotate(${-10 + i * 5}deg) translateX(${i * 2}px)` }}
+                    >
+                      <div className="absolute inset-0 flex items-center justify-center opacity-30">
+                        <span className="text-white text-xs font-bold">UNO</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Card count badge */}
+              <div className="absolute -bottom-3 -right-3 bg-gradient-to-br from-gray-900 to-gray-800 rounded-lg px-3 py-1.5 border-2 border-white/50 shadow-lg min-w-[3rem] text-center">
+                <div className="flex items-center gap-1.5">
+                  <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                  </svg>
+                  <span className="text-white font-black text-base">{opponent.cardCount}</span>
+                </div>
+              </div>
+
+              {/* Player name label */}
+              <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 bg-black/60 backdrop-blur-sm px-4 py-1.5 rounded-full whitespace-nowrap shadow-lg">
+                <span className="text-white text-sm font-bold">{opponent.name}</span>
+              </div>
+
+              {/* UNO indicator */}
+              {opponent.calledUno && opponent.cardCount === 1 && (
+                <div className="absolute -top-14 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-red-500 to-pink-600 text-white text-xs font-black px-3 py-1 rounded-full animate-bounce shadow-xl z-10">
+                  UNO!
+                </div>
+              )}
             </div>
           </div>
         );
       })}
     </>
   );
-}
-
-function getPositionStyles(position: string): string {
-  const styles: Record<string, string> = {
-    'top-left': 'top-8 md:top-12 left-8 md:left-12',
-    'top-center': 'top-8 md:top-12 left-1/2',
-    'top-right': 'top-8 md:top-12 right-8 md:right-12 translate-x-1/2',
-    'middle-left': 'top-1/2 left-8 md:left-12 -translate-y-1/2 translate-x-0',
-    'middle-right': 'top-1/2 right-8 md:right-12 -translate-y-1/2 translate-x-0',
-  };
-  return styles[position] || styles['top-center'];
 }

@@ -418,6 +418,56 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     });
 
     /**
+     * CHALLENGE UNO (catch someone who didn't call UNO)
+     */
+    socket.on(CLIENT_EVENTS.CHALLENGE_UNO, (payload: { targetId: string }, callback) => {
+      try {
+        const mapping = socketToPlayer.get(socket.id);
+
+        if (!mapping) {
+          callback?.({ success: false, error: 'Not in a room' });
+          return;
+        }
+
+        const { roomId, playerId } = mapping;
+        const room = rooms.get(roomId);
+        if (!room) {
+          callback?.({ success: false, error: 'Room not found' });
+          return;
+        }
+
+        const result = room.challengeUno(playerId, payload.targetId);
+
+        if (!result.success) {
+          callback?.({ success: false, error: result.error });
+          return;
+        }
+
+        callback?.({ success: true });
+
+        const target = room.players.get(payload.targetId);
+        const challenger = room.players.get(playerId);
+
+        // Notify all players about the successful challenge
+        io.to(roomId).emit(SERVER_EVENTS.UNO_CHALLENGE_SUCCEEDED, {
+          challengerId: playerId,
+          challengerName: challenger?.name,
+          targetId: payload.targetId,
+          targetName: target?.name,
+        });
+
+        // Send updated game state
+        room.players.forEach((_, pid) => {
+          const gameState = room.toClientGameState(pid);
+          io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
+        });
+      } catch (error) {
+        console.error('Error challenging UNO:', error);
+        callback?.({ success: false, error: 'Server error' });
+      }
+    });
+
+    /**
      * CHOOSE PLAYER (for hand swap with 7 card)
      */
     socket.on(CLIENT_EVENTS.CHOOSE_PLAYER, (payload: ChoosePlayerPayload, callback) => {
