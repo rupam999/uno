@@ -369,11 +369,23 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
 
           {/* Player Count & Menu - Right */}
           <div className="flex items-center gap-3">
+            {/* UNO Call Button - Show when player has 2 cards */}
+            {currentGameState.myHand.length === 2 &&
+             !currentGameState.players.find(p => p.id === currentGameState.myPlayerId)?.calledUno && (
+              <button
+                onClick={handleCallUno}
+                className="bg-gradient-to-r from-red-500 to-red-700 hover:from-red-600 hover:to-red-800 text-white font-black text-lg px-6 py-3 rounded-full shadow-2xl animate-pulse border-3 border-white transform hover:scale-105 transition-all"
+              >
+                UNO!
+              </button>
+            )}
+
+            {/* Catch UNO Button - Show when another player didn't call UNO */}
             {currentGameState.unoCallWindow &&
              currentGameState.unoCallWindow.playerId !== currentGameState.myPlayerId && (
               <button
                 onClick={() => handleChallengeUno(currentGameState.unoCallWindow!.playerId)}
-                className="bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 text-white font-black text-sm px-4 py-2 rounded-full shadow-lg animate-pulse border-2 border-red-300"
+                className="bg-gradient-to-r from-orange-500 to-pink-600 hover:from-orange-600 hover:to-pink-700 text-white font-black text-sm px-4 py-2 rounded-full shadow-lg animate-pulse border-2 border-white"
               >
                 🚨 CATCH!
               </button>

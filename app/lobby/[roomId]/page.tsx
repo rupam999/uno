@@ -142,17 +142,17 @@ export default function LobbyPage() {
         {/* Main Lobby Area */}
         <div className="relative">
           {/* Room Code Card - Top */}
-          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 z-20">
-            <div className="bg-black/60 backdrop-blur-md rounded-2xl px-8 py-4 border border-white/20 shadow-2xl">
+          <div className="absolute -top-32 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-lg px-4">
+            <div className="bg-black/70 backdrop-blur-xl rounded-3xl px-6 md:px-10 py-6 border border-white/30 shadow-2xl">
               <div className="text-center">
-                <p className="text-gray-400 text-sm mb-2 font-medium">ROOM CODE</p>
-                <div className="flex items-center gap-3">
-                  <div className="text-4xl font-black text-white font-mono tracking-widest">
+                <p className="text-gray-300 text-xs uppercase tracking-wider mb-3 font-bold">ROOM CODE</p>
+                <div className="flex items-center justify-center gap-3 md:gap-4 flex-nowrap">
+                  <div className="text-3xl md:text-4xl font-black text-white font-mono tracking-[0.2em] whitespace-nowrap">
                     {formatRoomCode(roomId)}
                   </div>
                   <button
                     onClick={handleCopyCode}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition font-bold shadow-lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-4 md:px-5 py-2 md:py-3 rounded-xl transition-all font-bold shadow-lg hover:scale-105 text-base md:text-lg flex-shrink-0"
                   >
                     {copied ? '✓' : '📋'}
                   </button>

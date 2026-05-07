@@ -80,33 +80,46 @@ export default function HomePage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-indigo-950 via-purple-950 to-pink-950">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Space Background Image */}
+      <div
+        className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+        style={{
+          backgroundImage: 'url(/space-background.jpeg)',
+        }}
+      >
+        {/* Dark overlay for better contrast */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-purple-900/30 to-black/60"></div>
+      </div>
+
+      <div className="relative w-full max-w-2xl">
+        {/* UNO Logo */}
         <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-6">
             <Image
               src="/assets/logo.png"
               alt="UNO"
-              width={160}
-              height={160}
-              className="drop-shadow-2xl animate-pulse-slow"
+              width={200}
+              height={200}
+              className="drop-shadow-2xl"
               priority
             />
           </div>
-          <p className="text-2xl md:text-3xl text-purple-400 font-bold drop-shadow-lg tracking-wide">
+          <p className="text-2xl md:text-3xl text-purple-300 font-bold drop-shadow-lg tracking-wide">
             by Alliance
           </p>
         </div>
 
         {!isConnected && (
-          <div className="bg-yellow-900/40 border border-yellow-600 rounded-lg p-3 mb-4 text-center">
-            <p className="text-yellow-300 text-sm font-medium">Connecting to server...</p>
+          <div className="bg-yellow-500/20 border border-yellow-500/50 rounded-xl p-3 mb-4 text-center backdrop-blur-sm">
+            <p className="text-yellow-200 text-sm font-medium">Connecting to server...</p>
           </div>
         )}
 
-        <div className="bg-gray-900/80 backdrop-blur-md rounded-2xl p-6 md:p-8 shadow-2xl border border-gray-700">
+        {/* Main Card */}
+        <div className="bg-gray-900/70 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/10">
           <div className="mb-6">
-            <label htmlFor="playerName" className="block text-gray-200 mb-2 text-sm font-medium">
+            <label htmlFor="playerName" className="block text-gray-200 mb-3 text-base font-medium">
               Your Name
             </label>
             <input
@@ -116,39 +129,60 @@ export default function HomePage() {
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="Enter your name"
               maxLength={20}
-              className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full px-5 py-4 bg-gray-800/80 border border-gray-600/50 rounded-xl text-white text-lg placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm"
               disabled={creatingRoom || joiningRoom}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !showJoinForm) {
+                  handleCreateRoom();
+                }
+              }}
             />
           </div>
 
           {error && (
-            <div className="mb-4 bg-red-900/50 border border-red-600 rounded-lg p-3">
+            <div className="mb-4 bg-red-500/20 border border-red-500/50 rounded-xl p-3 backdrop-blur-sm">
               <p className="text-red-200 text-sm text-center font-medium">{error}</p>
             </div>
           )}
 
           {!showJoinForm ? (
-            <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-4">
               <button
                 onClick={handleCreateRoom}
                 disabled={creatingRoom || !isConnected}
-                className="w-full bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-bold py-6 px-6 rounded-2xl shadow-xl transform transition-all hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-4"
               >
-                {creatingRoom ? 'Creating...' : 'Create New Game'}
+                <div className="bg-white/20 rounded-full p-3">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black">CREATE ROOM</div>
+                  <div className="text-sm text-purple-200 font-normal">Play with friends</div>
+                </div>
               </button>
 
               <button
                 onClick={() => setShowJoinForm(true)}
                 disabled={!isConnected}
-                className="w-full bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-4 px-6 rounded-lg shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-6 px-6 rounded-2xl shadow-xl transform transition-all hover:scale-105 hover:shadow-2xl disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center gap-4"
               >
-                Join Existing Game
+                <div className="bg-white/20 rounded-full p-3">
+                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                  </svg>
+                </div>
+                <div className="text-left">
+                  <div className="text-lg font-black">JOIN ROOM</div>
+                  <div className="text-sm text-blue-200 font-normal">Enter room code</div>
+                </div>
               </button>
             </div>
           ) : (
             <div className="space-y-4">
               <div>
-                <label htmlFor="roomCode" className="block text-gray-200 mb-2 text-sm font-medium">
+                <label htmlFor="roomCode" className="block text-gray-200 mb-3 text-base font-medium">
                   Room Code
                 </label>
                 <input
@@ -158,8 +192,13 @@ export default function HomePage() {
                   onChange={handleRoomCodeChange}
                   placeholder="ABC123"
                   maxLength={7}
-                  className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white text-center text-2xl font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase tracking-wider"
+                  className="w-full px-5 py-4 bg-gray-800/80 border border-gray-600/50 rounded-xl text-white text-center text-2xl font-mono placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent uppercase tracking-widest backdrop-blur-sm"
                   disabled={joiningRoom}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && roomCode.length === 6) {
+                      handleJoinRoom();
+                    }
+                  }}
                 />
               </div>
 
@@ -171,14 +210,14 @@ export default function HomePage() {
                     setError('');
                   }}
                   disabled={joiningRoom}
-                  className="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-200 font-medium py-3 px-4 rounded-lg border border-gray-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-gray-800/80 hover:bg-gray-700/80 text-gray-200 font-medium py-4 px-4 rounded-xl border border-gray-600/50 transition backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleJoinRoom}
                   disabled={joiningRoom || !isConnected || roomCode.length !== 6}
-                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-bold py-3 px-4 rounded-lg shadow-lg transform transition hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold py-4 px-4 rounded-xl shadow-xl transform transition-all hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                 >
                   {joiningRoom ? 'Joining...' : 'Join'}
                 </button>
@@ -186,14 +225,14 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="mt-6 pt-6 border-t border-gray-700">
-            <p className="text-gray-400 text-xs text-center">
+          <div className="mt-6 pt-6 border-t border-gray-700/50">
+            <p className="text-gray-400 text-sm text-center">
               168 cards • Draw stacking • Mercy rule at 25 cards
             </p>
           </div>
         </div>
 
-        <p className="text-gray-500 text-center mt-6 text-sm">
+        <p className="text-gray-400 text-center mt-6 text-sm">
           UNO by Alliance • 2-10 players
         </p>
       </div>
