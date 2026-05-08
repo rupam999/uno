@@ -14,6 +14,8 @@ interface PlayerHandProps {
   onCardSelect: (cardId: string) => void;
   onDrawCard: () => void;
   onCallUno: () => void;
+  canPassTurn?: boolean;
+  onPassTurn?: () => void;
 }
 
 export function PlayerHand({
@@ -25,6 +27,8 @@ export function PlayerHand({
   onCardSelect,
   onDrawCard,
   onCallUno,
+  canPassTurn = false,
+  onPassTurn,
 }: PlayerHandProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [autoUno, setAutoUno] = useState(false);
@@ -85,8 +89,8 @@ export function PlayerHand({
     const startAngle = -maxAngle / 2;
     const angle = startAngle + angleStep * index;
 
-    // Horizontal spacing
-    const cardWidth = 130; // Account for card width + overlap
+    // Horizontal spacing - responsive based on screen size
+    const cardWidth = 130; // Account for card width + overlap (base mobile)
     const totalWidth = (total - 1) * cardWidth * 0.4; // Cards overlap by 60%
     const x = -totalWidth / 2 + index * cardWidth * 0.4;
 
@@ -110,8 +114,18 @@ export function PlayerHand({
           </button>
         )}
 
+        {/* Pass Turn Button - Shows after drawing a playable card */}
+        {canPassTurn && isMyTurn && !selectedCardId && onPassTurn && (
+          <button
+            onClick={onPassTurn}
+            className="bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-600 hover:to-pink-700 text-white font-black text-sm md:text-lg px-6 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl shadow-2xl shadow-purple-500/50 transform hover:scale-105 transition-all"
+          >
+            ⏩ PASS TURN
+          </button>
+        )}
+
         {/* Draw Button */}
-        {isMyTurn && !hasPlayableCard && !selectedCardId && (
+        {isMyTurn && !hasPlayableCard && !selectedCardId && !canPassTurn && (
           <button
             onClick={onDrawCard}
             className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-black text-sm md:text-lg px-6 md:px-10 py-2.5 md:py-4 rounded-xl md:rounded-2xl shadow-2xl shadow-blue-500/50 transform hover:scale-105 transition-all"
@@ -135,13 +149,12 @@ export function PlayerHand({
               return (
                 <div
                   key={card.id}
-                  className="transition-all duration-300 shrink-0"
+                  className="transition-all duration-300 shrink-0 -ml-10 first:ml-0 lg:-ml-12 xl:-ml-14"
                   style={{
                     transform: `translateY(-${y}px) rotate(${angle}deg) ${
                       selectedCardId === card.id ? 'translateY(-30px) scale(1.1)' : ''
                     } ${isPlayable && isMyTurn ? 'translateY(-15px)' : ''}`,
                     zIndex: selectedCardId === card.id ? 30 : 10 + index,
-                    marginLeft: index > 0 ? '-40px' : '0',
                   }}
                 >
                   <div
@@ -155,6 +168,7 @@ export function PlayerHand({
                       size="small"
                       selected={selectedCardId === card.id}
                       playable={!!isPlayable}
+                      responsive={true}
                     />
                   </div>
                 </div>

@@ -54,9 +54,9 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps) {
               <li>Match cards by color, number, or symbol</li>
               <li>168-card deck with No Mercy cards</li>
               <li>Draw until you can play</li>
-              <li>Call UNO before playing 2nd-to-last card</li>
+              <li>Calling UNO is optional (but risk being caught!)</li>
               <li>First to empty hand wins</li>
-              <li>15-second turn timer</li>
+              <li>25-second turn timer</li>
             </ul>
           </div>
 
@@ -124,9 +124,10 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps) {
               <span className="text-base md:text-lg">📚</span> Stacking Rules
             </h3>
             <ul className="text-gray-300 text-xs space-y-1 list-disc list-inside">
-              <li>On colored +2/+4: Stack same color OR wild draws</li>
-              <li>On wild draws: Only stack other wild draws</li>
-              <li>Example: +2🔴 → +4🔴 → +6⚪ → +10⚪ = Draw 22!</li>
+              <li>On colored +2/+4: Stack with ANY color +2/+4 OR wild draws</li>
+              <li>On wild draws: Stack other wild draws OR matching color +2/+4</li>
+              <li>Example: +2🔴 → +4🔵 → +2🟡 → +6⚪ = Draw 14!</li>
+              <li>Example: Wild Reverse +4🟡 → +4🟡 → Draw 8!</li>
               <li>Can't stack? Draw the penalty</li>
             </ul>
           </div>
@@ -138,15 +139,15 @@ export function RulesModal({ isOpen, onClose }: RulesModalProps) {
             </h3>
             <div className="space-y-2 text-xs">
               <div>
-                <p className="text-white font-semibold">Calling UNO</p>
-                <p className="text-gray-300">MUST call before playing when at 2 cards</p>
+                <p className="text-white font-semibold">Calling UNO (Optional)</p>
+                <p className="text-gray-300">You CAN call UNO when you have 2 cards to protect yourself</p>
               </div>
               <div>
-                <p className="text-white font-semibold">Catch UNO</p>
-                <p className="text-gray-300">Catch players who didn't call UNO</p>
+                <p className="text-white font-semibold">Catch UNO (Risk!)</p>
+                <p className="text-gray-300">If someone has 1 card without calling UNO, catch them within 3 seconds!</p>
               </div>
               <div>
-                <p className="text-gray-400 italic">Penalty: Draw 2 cards</p>
+                <p className="text-red-400 font-semibold">Penalty: Draw 2 cards if caught!</p>
               </div>
             </div>
           </div>

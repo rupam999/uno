@@ -11,6 +11,7 @@ interface CardProps {
   playable?: boolean;
   onClick?: () => void;
   className?: string;
+  responsive?: boolean; // Enable responsive sizing
 }
 
 const SIZE_CONFIG = {
@@ -20,6 +21,14 @@ const SIZE_CONFIG = {
   large: { width: 160, height: 240 },
 };
 
+// Responsive size config for larger screens
+const RESPONSIVE_SIZE_CONFIG = {
+  tiny: { width: 40, height: 60, lgWidth: 50, lgHeight: 75 },
+  small: { width: 80, height: 120, lgWidth: 100, lgHeight: 150, xlWidth: 120, xlHeight: 180 },
+  medium: { width: 120, height: 180, lgWidth: 140, lgHeight: 210 },
+  large: { width: 160, height: 240, lgWidth: 180, lgHeight: 270 },
+};
+
 export function Card({
   card,
   size = 'medium',
@@ -27,9 +36,15 @@ export function Card({
   playable = false,
   onClick,
   className = '',
+  responsive = false,
 }: CardProps) {
   const { width, height } = SIZE_CONFIG[size];
   const imagePath = getCardImagePath(card);
+
+  // For responsive small size: 80x120 -> 100x150 (lg) -> 120x180 (xl)
+  const responsiveClass = responsive && size === 'small'
+    ? 'w-[80px] h-[120px] lg:w-[100px] lg:h-[150px] xl:w-[120px] xl:h-[180px]'
+    : '';
 
   return (
     <div
@@ -38,9 +53,10 @@ export function Card({
         ${selected ? 'ring-4 ring-blue-400 -translate-y-4 shadow-2xl shadow-blue-500/50 scale-105' : 'shadow-xl'}
         ${playable ? 'hover:scale-110 hover:-translate-y-3 cursor-pointer ring-2 ring-green-400/50' : ''}
         ${!playable && !onClick ? 'cursor-default' : ''}
+        ${responsiveClass}
         ${className}
       `}
-      style={{
+      style={responsive ? undefined : {
         width: `${width}px`,
         height: `${height}px`,
       }}

@@ -17,6 +17,7 @@ export const CLIENT_EVENTS = {
   JOIN_ALLIANCE: 'join_alliance',
   LEAVE_ALLIANCE: 'leave_alliance',
   SEND_CHAT_MESSAGE: 'send_chat_message', // Chat event
+  PASS_TURN: 'pass_turn', // Pass turn after drawing a playable card
 } as const;
 
 // Server -> Client events

@@ -295,10 +295,8 @@ export class GameRoom {
       return { success: false, error: 'Card not in hand' };
     }
 
-    // Check if player has 2 cards and hasn't called UNO before playing
-    if (player.getHandSize() === 2 && !player.calledUno) {
-      return { success: false, error: 'Must call UNO before playing your second-to-last card!' };
-    }
+    // UNO is optional - players can choose to call it or risk being caught
+    // Removed mandatory check: if (player.getHandSize() === 2 && !player.calledUno)
 
     // Validate card can be played
     if (!this.topCard || !canPlayCard(card, this.topCard, this.currentColor, this.pendingPenalty)) {
@@ -330,6 +328,14 @@ export class GameRoom {
     // Apply card effects and get eliminated players
     const eliminatedPlayers = this.applyCardEffects(card, player, chosenColor);
 
+    // Check if player has 1 card left and didn't call UNO - open catch window
+    if (player.getHandSize() === 1 && !player.calledUno) {
+      this.unoCallWindow = {
+        playerId: playerId,
+        timestamp: Date.now(),
+      };
+    }
+
     // Check if player finished all cards - they win!
     if (player.getHandSize() === 0) {
       this.endRound(player);
@@ -337,8 +343,10 @@ export class GameRoom {
       return { success: true, card, eliminatedPlayers };
     }
 
-    // Clear UNO call window since player successfully played
-    this.unoCallWindow = null;
+    // Clear UNO call window since player successfully played (if they had called UNO)
+    if (player.calledUno) {
+      this.unoCallWindow = null;
+    }
 
     this.updateActivity();
 
@@ -429,6 +437,27 @@ export class GameRoom {
   }
 
   /**
+   * Pass turn after drawing a playable card (player chooses not to play)
+   */
+  passTurn(playerId: string): { success: boolean; error?: string } {
+    if (this.state !== 'playing') {
+      return { success: false, error: 'Game has not started' };
+    }
+
+    const playerArray = Array.from(this.players.values());
+    const currentPlayer = playerArray[this.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.id !== playerId) {
+      return { success: false, error: 'Not your turn' };
+    }
+
+    // Advance to next player
+    this.nextTurn();
+    this.updateActivity();
+
+    return { success: true };
+  }
+
+  /**
    * Apply effects of a played card
    */
   private applyCardEffects(card: Card, player: Player, chosenColor?: Color): string[] {
@@ -440,7 +469,15 @@ export class GameRoom {
       this.pendingPenaltyType = card.type;
     }
 
-    // Handle reverse - player can play again (skips everyone)
+    // Handle wild_reverse_draw_4 separately (reverse + draw + advance turn)
+    if (card.type === 'wild_reverse_draw_4') {
+      this.direction *= -1;
+      // Advance to next turn - that player will draw the penalty
+      this.nextTurn();
+      return eliminatedPlayers;
+    }
+
+    // Handle regular reverse - player can play again (skips everyone)
     if (triggersReverse(card)) {
       this.direction *= -1;
       // Player plays again (don't advance turn)

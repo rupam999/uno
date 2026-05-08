@@ -46,6 +46,11 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId, myAllia
         const isCurrentTurn = opponent.id === currentPlayer?.id;
         const { x, y } = getCircularPosition(index, opponents.length);
 
+        // Determine if opponent is on right side - if so, show cards on left
+        const isOnRightSide = x > 50;
+        // Determine if opponent is on bottom half - affects vertical positioning
+        const isOnBottomHalf = y > 50;
+
         return (
           <div
             key={opponent.id}
@@ -91,21 +96,33 @@ export function OpponentHands({ players, currentPlayerIndex, myPlayerId, myAllia
                 )}
               </div>
 
-              {/* Alliance Member Cards - Show all cards in compact view */}
+              {/* Alliance Member Cards - Show all cards in scrollable compact view */}
               {myAllianceId && opponent.allianceId === myAllianceId && opponent.hand && opponent.hand.length > 0 && (
-                <div className="absolute -left-32 top-1/2 -translate-y-1/2 z-0">
-                  <div className="flex gap-1 flex-wrap max-w-[200px]">
-                    {opponent.hand.map((card, i) => (
-                      <div
-                        key={card.id}
-                        className="transition-transform hover:scale-125 hover:z-20"
-                        style={{
-                          transform: `rotate(${-3 + (i % 5) * 1.5}deg)`
-                        }}
-                      >
-                        <Card card={card} size="tiny" />
+                <div
+                  className={`absolute top-1/2 -translate-y-1/2 z-30 ${
+                    isOnRightSide ? 'right-full mr-4' : 'left-full ml-4'
+                  } ${
+                    isOnBottomHalf ? 'hidden md:block' : ''
+                  }`}
+                >
+                  <div className="bg-black/80 backdrop-blur-sm rounded-lg border border-purple-500/30 p-2 shadow-xl">
+                    <div className="text-purple-300 text-xs font-bold mb-1 text-center">Teammate Cards</div>
+                    <div className="overflow-x-auto overflow-y-visible scrollbar-hide" style={{ maxWidth: '280px' }}>
+                      <div className="flex gap-1" style={{ minWidth: 'min-content' }}>
+                        {opponent.hand.map((card, i) => (
+                          <div
+                            key={card.id}
+                            className="transition-transform hover:scale-110 hover:z-20 shrink-0"
+                            style={{
+                              transform: `translateY(${Math.sin(i * 0.5) * 3}px)`,
+                              marginLeft: i > 0 ? '-20px' : '0'
+                            }}
+                          >
+                            <Card card={card} size="tiny" />
+                          </div>
+                        ))}
                       </div>
-                    ))}
+                    </div>
                   </div>
                 </div>
               )}

@@ -382,6 +382,54 @@ export function setupSocketHandlers(io: SocketIOServer): void {
     });
 
     /**
+     * PASS TURN (after drawing a playable card)
+     */
+    socket.on(CLIENT_EVENTS.PASS_TURN, (callback) => {
+      try {
+        const mapping = socketToPlayer.get(socket.id);
+
+        if (!mapping) {
+          callback?.({ success: false, error: 'Not in a room' });
+          return;
+        }
+
+        const { roomId, playerId } = mapping;
+        const room = rooms.get(roomId);
+        if (!room) {
+          callback?.({ success: false, error: 'Room not found' });
+          return;
+        }
+
+        const result = room.passTurn(playerId);
+
+        if (!result.success) {
+          callback?.({ success: false, error: result.error });
+          return;
+        }
+
+        callback?.({ success: true });
+
+        // Send updated game state
+        room.players.forEach((_, pid) => {
+          const gameState = room.toClientGameState(pid);
+          io.to(pid).emit(SERVER_EVENTS.GAME_STATE_SYNC, { gameState });
+        });
+
+        // Emit turn changed
+        const currentPlayer = room.getCurrentPlayer();
+        if (currentPlayer) {
+          io.to(roomId).emit(SERVER_EVENTS.TURN_CHANGED, {
+            currentPlayerId: currentPlayer.id,
+            nextPlayerId: currentPlayer.id,
+          });
+        }
+      } catch (error) {
+        console.error('Error passing turn:', error);
+        callback?.({ success: false, error: 'Server error' });
+      }
+    });
+
+    /**
      * CALL UNO
      */
     socket.on(CLIENT_EVENTS.CALL_UNO, (payload: CallUnoPayload, callback) => {

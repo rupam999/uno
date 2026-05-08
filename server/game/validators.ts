@@ -38,9 +38,8 @@ export function canPlayCard(
       if (cardToPlay.type === 'wild_draw_6' || cardToPlay.type === 'wild_draw_10') {
         return true;
       }
-      // Can play colored draw cards (+2 or +4) if they match the current color
-      if ((cardToPlay.type === 'draw_2' || cardToPlay.type === 'draw_4') &&
-          cardToPlay.color === currentColor) {
+      // Can play ANY colored draw cards (+2 or +4) regardless of color
+      if (cardToPlay.type === 'draw_2' || cardToPlay.type === 'draw_4') {
         return true;
       }
       // Can play wild_reverse_draw_4 of ANY color (it's a wild card)
@@ -60,7 +59,11 @@ export function canPlayCard(
           cardToPlay.type === 'wild_reverse_draw_4') {
         return true;
       }
-      // Cannot play colored draw cards on wild draw cards
+      // Can play colored draw cards (+2, +4) if they match the current color
+      if ((cardToPlay.type === 'draw_2' || cardToPlay.type === 'draw_4') &&
+          cardToPlay.color === currentColor) {
+        return true;
+      }
       return false;
     }
 

@@ -14,6 +14,7 @@ import { ChatPanel } from './ChatPanel';
 import { RulesModal } from './RulesModal';
 import { requiresColorSelection, canPlayCard } from '@/server/game/validators';
 import { getAvatarUrl } from '@/lib/utils/avatars';
+import { initAudio, playUnoSound, playCatchUnoSound, playWinSound } from '@/lib/utils/sounds';
 
 interface GameBoardProps {
   initialGameState: ClientGameState;
@@ -27,11 +28,12 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   const [notification, setNotification] = useState<string | null>(null);
   const [showWinner, setShowWinner] = useState(false);
   const [winnerData, setWinnerData] = useState<{ name: string; score?: number } | null>(null);
-  const [turnTimer, setTurnTimer] = useState<number>(15);
+  const [turnTimer, setTurnTimer] = useState<number>(25);
   const [showCatchUnoModal, setShowCatchUnoModal] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [showRules, setShowRules] = useState(false);
+  const [canPassTurn, setCanPassTurn] = useState(false);
 
   const currentGameState = gameState || initialGameState;
   const isMyTurn =
@@ -43,6 +45,11 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
 
   // Get current player name
   const myPlayerName = currentGameState.players.find(p => p.id === currentGameState.myPlayerId)?.name || 'You';
+
+  // Initialize audio on component mount (requires user interaction)
+  useEffect(() => {
+    initAudio();
+  }, []);
 
   // Listen for chat messages to update unread count
   useSocketEvent(SERVER_EVENTS.CHAT_MESSAGE, (data: { playerId: string }) => {
@@ -132,14 +139,14 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     }
   }, [socket, isMyTurn, currentGameState, roomId, showNotification, handleDrawCard]);
 
-  // Turn timeout - 15 seconds
+  // Turn timeout - 25 seconds
   useEffect(() => {
     if (!isMyTurn) {
       return;
     }
 
-    // Start countdown from 15
-    let timeLeft = 15;
+    // Start countdown from 25
+    let timeLeft = 25;
 
     const interval = setInterval(() => {
       timeLeft--;
@@ -163,6 +170,12 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   // Listen for card played
   useSocketEvent(SERVER_EVENTS.CARD_PLAYED, (data: any) => {
     const player = currentGameState.players.find((p) => p.id === data.playerId);
+
+    // Reset pass turn when a card is played
+    if (data.playerId === currentGameState.myPlayerId) {
+      setCanPassTurn(false);
+    }
+
     showNotification(`${player?.name || 'Player'} played a card`);
   });
 
@@ -171,8 +184,10 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     const player = currentGameState.players.find((p) => p.id === data.playerId);
     if (data.playerId === currentGameState.myPlayerId) {
       if (data.canPlay) {
+        setCanPassTurn(true); // Enable pass turn option
         showNotification(`You drew ${data.cardCount} card - You can play it or pass!`);
       } else {
+        setCanPassTurn(false);
         showNotification(`You drew ${data.cardCount} card - Turn passed`);
       }
     } else {
@@ -183,6 +198,10 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   // Listen for turn changed
   useSocketEvent(SERVER_EVENTS.TURN_CHANGED, (data: any) => {
     const player = currentGameState.players.find((p) => p.id === data.currentPlayerId);
+
+    // Reset pass turn when turn changes
+    setCanPassTurn(false);
+
     if (data.currentPlayerId === currentGameState.myPlayerId) {
       showNotification("It's your turn!");
     } else {
@@ -198,6 +217,10 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
   // Listen for UNO called
   useSocketEvent(SERVER_EVENTS.UNO_CALLED, (data: { playerId: string }) => {
     const player = currentGameState.players.find((p) => p.id === data.playerId);
+
+    // Play UNO sound
+    playUnoSound();
+
     if (data.playerId === currentGameState.myPlayerId) {
       showNotification('You called UNO! 🎉');
     } else {
@@ -205,8 +228,34 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
     }
   });
 
+  // Listen for UNO challenge succeeded
+  useSocketEvent(SERVER_EVENTS.UNO_CHALLENGE_SUCCEEDED, (data: { challengerId: string; challengerName: string; targetId: string; targetName: string }) => {
+    // Play catch UNO sound
+    playCatchUnoSound();
+
+    if (data.challengerId === currentGameState.myPlayerId) {
+      showNotification(`You caught ${data.targetName}! They draw 2 cards! 🚨`);
+    } else if (data.targetId === currentGameState.myPlayerId) {
+      showNotification(`${data.challengerName} caught you! Draw 2 cards! 🚨`);
+    } else {
+      showNotification(`${data.challengerName} caught ${data.targetName}! 🚨`);
+    }
+  });
+
+  // Listen for UNO challenge failed
+  useSocketEvent(SERVER_EVENTS.UNO_CHALLENGE_FAILED, (data: { challengerId: string; challengerName: string; reason?: string }) => {
+    if (data.challengerId === currentGameState.myPlayerId) {
+      showNotification(data.reason || 'Challenge failed!');
+    } else {
+      showNotification(`${data.challengerName}'s challenge failed`);
+    }
+  });
+
   // Listen for game ended
   useSocketEvent(SERVER_EVENTS.GAME_ENDED, (data: any) => {
+    // Play win sound
+    playWinSound();
+
     setWinnerData({
       name: data.winnerName,
       score: data.finalScores?.[data.winnerId],
@@ -325,6 +374,23 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
           showNotification('Hands swapped!');
         } else {
           showNotification(response.error || 'Failed to swap hands');
+        }
+      }
+    );
+  }, [socket, showNotification]);
+
+  // Pass turn after drawing a playable card
+  const handlePassTurn = useCallback(() => {
+    if (!socket) return;
+
+    socket.emit(
+      CLIENT_EVENTS.PASS_TURN,
+      (response: any) => {
+        if (response.success) {
+          setCanPassTurn(false);
+          showNotification('Turn passed!');
+        } else {
+          showNotification(response.error || 'Failed to pass turn');
         }
       }
     );
@@ -558,6 +624,8 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
             onCardSelect={handleCardSelect}
             onDrawCard={handleDrawCard}
             onCallUno={handleCallUno}
+            canPassTurn={canPassTurn}
+            onPassTurn={handlePassTurn}
           />
         </div>
       </div>
@@ -685,11 +753,11 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
               🚨 Catch UNO!
             </h3>
             <p className="text-gray-400 text-sm text-center mb-4">
-              Select a player who has 2 cards but didn&apos;t call UNO before playing
+              Select a player who has 1 card but didn&apos;t call UNO
             </p>
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {currentGameState.players
-                .filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 2 && !p.calledUno)
+                .filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno)
                 .map((player) => (
                   <button
                     key={player.id}
@@ -705,16 +773,16 @@ export function GameBoard({ initialGameState, roomId }: GameBoardProps) {
                       </div>
                       <div className="text-left">
                         <div className="font-bold">{player.name}</div>
-                        <div className="text-xs text-orange-200">{player.cardCount} cards - No UNO!</div>
+                        <div className="text-xs text-orange-200">{player.cardCount} card - No UNO!</div>
                       </div>
                     </div>
                     <div className="text-2xl">🚨</div>
                   </button>
                 ))}
-              {currentGameState.players.filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 2 && !p.calledUno).length === 0 && (
+              {currentGameState.players.filter((p) => p.id !== currentGameState.myPlayerId && !p.isEliminated && p.cardCount === 1 && !p.calledUno).length === 0 && (
                 <div className="text-center py-8">
                   <p className="text-gray-400">No players to catch!</p>
-                  <p className="text-gray-500 text-sm mt-2">All players with 2 cards have called UNO</p>
+                  <p className="text-gray-500 text-sm mt-2">All players with 1 card have called UNO</p>
                 </div>
               )}
             </div>
